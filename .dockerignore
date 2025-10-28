@@ -1,0 +1,21 @@
+# Ignore node modules anywhere in the repo
+node_modules
+**/node_modules
+
+# Common build / cache artefacts
+.next
+.turbo
+/.turbo
+dist
+
+# Package manager files
+npm-debug.log
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Editor / OS
+.vscode
+.DS_Store
+*.log

@@ -1,0 +1,9 @@
+{
+  "title": "Architecture",
+  "description": "Test",
+  "icon": "Globe",
+  "pages": [
+    "index",
+    "c4"
+  ]
+}

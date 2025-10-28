@@ -8,7 +8,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml .npmrc package.json turbo.json ./
 
 COPY apps/docs/ ./apps/docs/
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile 
 
 EXPOSE 3000
 ENV PORT=3000
