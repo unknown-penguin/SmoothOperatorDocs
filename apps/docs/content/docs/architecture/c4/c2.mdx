@@ -3,20 +3,83 @@ title: c2
 description: View the Scalar Galaxy example OpenAPI schema.
 ---
 
-## Features
+<Mermaid chart={`
+flowchart TD
+  %% C2 - Containers / Tech
+  subgraph External["External / On-Device"]
+    Car["Bolid\n(MQTT telemetry)"]
+    Sim["ECU Telemetry Simulator\n(Go)"]
+    RaceProvider["RaceProvider\n(flags/weather/position)"]
+  end
 
-The official OpenAPI integration supports:
+  subgraph Ingress["Ingress & Ingestion"]
+    Broker[("MQTT Broker\ninfra")]
+    Ingest["Ingestion Service\n(Go)\n(MQTT subscriber, normalizer, Kafka producer)"]
+  end
 
-- Basic API endpoint information
-- Interactive API playground
-- Example code to send request (in different programming languages)
-- Response samples and TypeScript definitions
-- Request parameters and body generated from schemas
+  subgraph Core["Streaming & Processing"]
+    K[("Kafka Cluster\ninfra")]
+    Proc["Telemetry Processor & API\n(.NET)\n(consumes, enriches, persists, produces)"]
+    TS[("PostgreSQL\nTimescaleDB\ninfra)"]
+  end
 
-> Only OpenAPI 3.0 and 3.1 are supported.
+  subgraph Realtime_UI["Realtime & UI"]
+    RT["Centrifugo Realtime Gateway\n(WS/SSE, Go)"]
+    R[("Redis Cache\ninfra")]
+    UI["Frontend\n(React + TypeScript)"]
+  end
 
-Generate docs with the script:
+  subgraph Services["Supporting Services"]
+    Alert["Alert Service\n(.NET)"]
+    Mon["Car Monitoring (Query API)\n(.NET)"]
+    Auth["Auth Service\n(.NET)"]
+    RC["RaceControl Service\n(.NET)"]
+  end
 
-```bash
-pnpm build:openapi
-```
+  %% Flows
+  Car -->|"MQTT telemetry/*"| Broker
+  Sim -->|"MQTT telemetry/*"| Broker
+  RaceProvider -->|"REST / gRPC (flags, weather, position)"| Ingest
+  Broker -->|"subscribe & normalize"| Ingest
+  Ingest -->|"produce: telemetry.raw.v1 / telemetry.context.v1"| K
+
+  K -->|"consume: telemetry.raw.v1 / context.v1"| Proc
+  Proc -->|"persist"| TS
+  Proc -->|"produce: telemetry.enriched.v1"| K
+
+  K -->|"consume: telemetry.enriched.v1"| Mon
+  Mon -. "read" .-> TS
+  Mon -. "read" .-> R
+
+  K -->|"consume: telemetry.enriched.v1"| RT
+  RT --> R
+  RT --> UI
+  Mon -->|"HTTP/JSON (monitoring endpoints)"| UI
+  Mon -. "optional publish compact DTOs" .-> RT
+
+  K -->|"consume: telemetry.enriched.v1"| Alert
+  Alert -->|"notify"| UI
+
+  UI -->|"JWT / token refresh"| Auth
+  Mon -->|"validate RBAC"| Auth
+  Alert -->|"validate RBAC"| Auth
+  RC -->|"validate RBAC"| Auth
+
+  K -->|"consume: telemetry.enriched.v1"| RC
+  RaceProvider -->|"flags/weather"| RC
+  RC -->|"Race Director API / Commands"| UI
+  RC -->|"produce: racecontrol.commands.v1"| K
+
+  %% Legend / classes
+  class Ingest,RT,Sim go;
+  class Proc,Alert,Mon,Auth,RC dotnet;
+  class Broker,K,TS,R infra;
+  class Car,Sim,RaceProvider external;
+  class UI frontend;
+
+  classDef go fill:#0ea5e9,stroke:#0369a1,color:#ffffff;
+  classDef dotnet fill:#8b5cf6,stroke:#5b21b6,color:#ffffff;
+  classDef infra fill:#374151,stroke:#111827,color:#ffffff;
+  classDef external fill:#6b7280,stroke:#374151,color:#ffffff;
+  classDef frontend fill:#10b981,stroke:#065f46,color:#ffffff;
+  `} />

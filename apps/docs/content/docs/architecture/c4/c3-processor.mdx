@@ -1,0 +1,63 @@
+---
+title: c3 - telemetry-processor
+description: Component diagram for the Telemetry Processor & API container.
+---
+
+## Telemetry Processor & API — Components
+
+<Mermaid chart={`
+flowchart TD
+  %% C3 - Components of Telemetry Processor & API
+  subgraph Proc["Telemetry Processor & API\n(.NET)"]
+    subgraph In["Ingestion/Consumers"]
+      ConsumerRaw["Raw Telemetry Consumer\n(telemetry.raw.v1)"]
+      ConsumerCtx["Context Consumer\n(telemetry.context.v1)"]
+    end
+
+    Enricher["Enricher / Normalizer\n(context merge, signal processing)"]
+    FailureDetector["Failure & Anomaly Detector\n(rules, ML hooks)"]
+    Persistor["Persistor\n(TimescaleDB writer)"]
+    Producer["Producer\n(produce telemetry.enriched.v1)"]
+    API["API Endpoints\nHTTP/REST & gRPC\n(queries, commands)"]
+    Health["Health & Metrics\n(health, prometheus)"]
+    CacheAdapter["Redis Adapter\n(cache & short reads)"]
+  end
+
+  %% External deps
+  Kafka[("Kafka Cluster\n(infra)")]
+  TS[("TimescaleDB\n(Postgres)")]
+  Redis[("Redis Cache\ninfra)")]
+  RT["Centrifugo Realtime Gateway\n(WS/SSE)"]
+  MonSvc["Car Monitoring Service\n(query API)"]
+
+  %% Internal flows
+  Kafka -->|consume telemetry.raw.v1| ConsumerRaw
+  Kafka -->|consume telemetry.context.v1| ConsumerCtx
+
+  ConsumerRaw --> Enricher
+  ConsumerCtx --> Enricher
+
+  Enricher --> FailureDetector
+  FailureDetector --> Persistor
+  Enricher --> Producer
+
+  Persistor -->|write| TS
+  Producer -->|produce telemetry.enriched.v1| Kafka
+
+  Enricher -->|cache hints| CacheAdapter
+  CacheAdapter -->|read/write| Redis
+
+  Producer -->|fan-out to RT| RT
+  API -->|query| TS
+  API -->|query/cache| Redis
+  API -->|publish commands| Kafka
+
+  Health -.->|metrics| MonSvc
+
+  class Proc dotnet;
+  class Kafka,TS,Redis,RT external;
+  classDef dotnet fill:#8b5cf6,stroke:#5b21b6,color:#fff;
+  classDef external fill:#6b7280,stroke:#374151,color:#fff;
+  `} />
+
+Notes: core enrichment, anomaly detection and write-paths live in this container.

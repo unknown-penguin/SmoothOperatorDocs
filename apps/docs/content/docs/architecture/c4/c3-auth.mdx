@@ -1,0 +1,30 @@
+---
+title: c3 - auth
+description: Component diagram for the Auth Service.
+---
+
+## Auth Service — Components
+
+<Mermaid chart={`
+flowchart TD
+  subgraph Auth["Auth Service\n(.NET)"]
+    TokenSvc["Token Service\n(JWT issuance / refresh)"]
+    UserStore["User & Role Store\n(EntraDB / Postgres) "]
+    RBAC["RBAC Service\n(policy eval)"]
+    Introspect["Token Introspection\n(introspect / revoke)"]
+    Health["Health & Metrics"]
+  end
+
+  UI["Frontend\n(React)"]
+  Services["Platform Services\n(Monitor, Alert, RC, etc)"]
+
+  UI -->|login / refresh| TokenSvc
+  Services -->|validate| Introspect
+  TokenSvc --> UserStore
+  RBAC --> UserStore
+
+  class Auth dotnet;
+  classDef dotnet fill:#8b5cf6,stroke:#5b21b6,color:#fff;
+  `} />
+
+Notes: central auth and RBAC for platform services; supports JWT and token introspection for backend services.

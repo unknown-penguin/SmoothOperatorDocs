@@ -1,0 +1,37 @@
+---
+title: c3 - racecontrol
+description: Component diagram for the RaceControl Service.
+---
+
+## RaceControl Service — Components
+
+<Mermaid chart={`
+flowchart TD
+  subgraph RC["RaceControl Service\n(.NET)"]
+    KafkaConsumer["Kafka Consumer\n(telemetry.enriched.v1)"]
+    FlagsAdapter["Flags & Weather Adapter\n(consumes RaceProvider events)"]
+    CommandAPI["Command API\n(Race Director commands)"]
+    Producer["Producer\n(produce racecontrol.commands.v1)"]
+    RBAC["RBAC Validator\n(Auth integration)"]
+    Health["Health & Metrics"]
+  end
+
+  Kafka[("Kafka Cluster\ninfra")]
+  RaceProvider["RaceProvider\n(flags/weather/position)"]
+  UI["Frontend\n(Race Director UI)"]
+
+  Kafka --> KafkaConsumer
+  RaceProvider --> FlagsAdapter
+  FlagsAdapter --> CommandAPI
+  CommandAPI -->|validate| RBAC
+  CommandAPI --> Producer
+  Producer --> Kafka
+  UI --> CommandAPI
+
+  class RC dotnet;
+  class Kafka,RaceProvider external;
+  classDef dotnet fill:#8b5cf6,stroke:#5b21b6,color:#fff;
+  classDef external fill:#6b7280,stroke:#374151,color:#fff;
+  `} />
+
+Notes: single place for race-director commands; produces commands back to Kafka for downstream processing and archiving.
