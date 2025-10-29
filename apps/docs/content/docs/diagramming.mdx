@@ -22,7 +22,7 @@ Click any diagram to open it in a zoomable viewer!
 
 <Diagram
   lang="mermaid"
-  chart={`
+  chart="
 graph TD;
 subgraph AA [Consumers]
 A[Mobile app];
@@ -40,7 +40,7 @@ B --> Z;
 C --> Z;
 Z --> E;
 Z --> F;
-Z --> G;`
+Z --> G;"
 />
 
 ## PlantUML Entity-Relationship Diagram
@@ -90,7 +90,7 @@ Here's our extended ERD that includes the base entities and adds a new Category 
 
 <Diagram
   lang="mermaid"
-  chart={`sequenceDiagram
+  chart="sequenceDiagram
     participant Client
     participant Docs
     participant API
@@ -101,5 +101,5 @@ Here's our extended ERD that includes the base entities and adds a new Category 
     Kroki->>API: Return SVG
     API->>Docs: Return image
     Docs->>Client: Display page
-  `}
-/> 
+  "
+/>

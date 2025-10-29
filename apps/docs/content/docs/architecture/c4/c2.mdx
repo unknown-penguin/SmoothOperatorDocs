@@ -3,7 +3,7 @@ title: c2
 description: View the Scalar Galaxy example OpenAPI schema.
 ---
 
-<Mermaid chart={`
+<Diagram lang="mermaid" chart={`
 flowchart TD
   %% C2 - Containers / Tech
   subgraph External["External / On-Device"]
@@ -13,19 +13,19 @@ flowchart TD
   end
 
   subgraph Ingress["Ingress & Ingestion"]
-    Broker[("MQTT Broker\ninfra")]
-    Ingest["Ingestion Service\n(Go)\n(MQTT subscriber, normalizer, Kafka producer)"]
+  Broker["MQTT Broker\ninfra"]
+  Ingest["Ingestion Service\n(Go)\n(MQTT subscriber, normalizer, Kafka producer)"]
   end
 
   subgraph Core["Streaming & Processing"]
-    K[("Kafka Cluster\ninfra")]
+  K["Kafka Cluster\ninfra"]
     Proc["Telemetry Processor & API\n(.NET)\n(consumes, enriches, persists, produces)"]
-    TS[("PostgreSQL\nTimescaleDB\ninfra)"]
+  TS["PostgreSQL\nTimescaleDB\ninfra"]
   end
 
   subgraph Realtime_UI["Realtime & UI"]
     RT["Centrifugo Realtime Gateway\n(WS/SSE, Go)"]
-    R[("Redis Cache\ninfra")]
+  R["Redis Cache\ninfra"]
     UI["Frontend\n(React + TypeScript)"]
   end
 

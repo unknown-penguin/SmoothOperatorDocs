@@ -5,7 +5,7 @@ description: Component diagram for the RaceControl Service.
 
 ## RaceControl Service — Components
 
-<Mermaid chart={`
+<Diagram lang="mermaid" chart={`
 flowchart TD
   subgraph RC["RaceControl Service\n(.NET)"]
     KafkaConsumer["Kafka Consumer\n(telemetry.enriched.v1)"]
@@ -16,7 +16,7 @@ flowchart TD
     Health["Health & Metrics"]
   end
 
-  Kafka[("Kafka Cluster\ninfra")]
+  Kafka["Kafka Cluster\ninfra"]
   RaceProvider["RaceProvider\n(flags/weather/position)"]
   UI["Frontend\n(Race Director UI)"]
 
@@ -30,8 +30,8 @@ flowchart TD
 
   class RC dotnet;
   class Kafka,RaceProvider external;
-  classDef dotnet fill:#8b5cf6,stroke:#5b21b6,color:#fff;
-  classDef external fill:#6b7280,stroke:#374151,color:#fff;
+  classDef dotnet fill:#8b5cf6,stroke:#5b21b6,color:#ffffff;
+  classDef external fill:#6b7280,stroke:#374151,color:#ffffff;
   `} />
 
 Notes: single place for race-director commands; produces commands back to Kafka for downstream processing and archiving.

@@ -5,7 +5,7 @@ description: Component diagram for the Realtime Gateway (Centrifugo).
 
 ## Realtime Gateway — Components
 
-<Mermaid chart={`
+<Diagram lang="mermaid" chart={`
 flowchart TD
   subgraph RT["Centrifugo Realtime Gateway\n(Go)"]
     KafkaConsumer["Kafka Consumer\n(telemetry.enriched.v1)"]
@@ -17,8 +17,8 @@ flowchart TD
     Health["Health & Metrics"]
   end
 
-  Kafka[("Kafka Cluster\ninfra")]
-  Redis[("Redis Cache\ninfra")]
+  Kafka["Kafka Cluster\ninfra"]
+  Redis["Redis Cache\ninfra"]
   UI["Frontend\n(React)"]
 
   Kafka --> KafkaConsumer

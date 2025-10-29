@@ -5,7 +5,7 @@ description: Component diagram for the Ingestion Service (MQTT → Kafka).
 
 ## Ingestion Service — Components
 
-<Mermaid chart={`
+<Diagram lang="mermaid" chart={`
 flowchart TD
   subgraph IngestSvc["Ingestion Service\n(Go)"]
     MQTTClient["MQTT Subscriber\n(topic subscriptions, TLS)"]
@@ -17,8 +17,8 @@ flowchart TD
     Health["Health & Metrics"]
   end
 
-  MQTTBroker[("MQTT Broker\ninfra")]
-  Kafka[("Kafka Cluster\ninfra")]
+  MQTTBroker["MQTT Broker\ninfra"]
+  Kafka["Kafka Cluster\ninfra"]
 
   MQTTBroker -->|push messages| MQTTClient
   HTTPGRPC -->|receive| ContextMerger

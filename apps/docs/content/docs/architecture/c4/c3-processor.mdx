@@ -5,7 +5,7 @@ description: Component diagram for the Telemetry Processor & API container.
 
 ## Telemetry Processor & API — Components
 
-<Mermaid chart={`
+<Diagram lang="mermaid" chart={`
 flowchart TD
   %% C3 - Components of Telemetry Processor & API
   subgraph Proc["Telemetry Processor & API\n(.NET)"]
@@ -24,9 +24,9 @@ flowchart TD
   end
 
   %% External deps
-  Kafka[("Kafka Cluster\n(infra)")]
-  TS[("TimescaleDB\n(Postgres)")]
-  Redis[("Redis Cache\ninfra)")]
+  Kafka["Kafka Cluster\ninfra"]
+  TS["TimescaleDB\nPostgres"]
+  Redis["Redis Cache\ninfra"]
   RT["Centrifugo Realtime Gateway\n(WS/SSE)"]
   MonSvc["Car Monitoring Service\n(query API)"]
 
@@ -56,8 +56,8 @@ flowchart TD
 
   class Proc dotnet;
   class Kafka,TS,Redis,RT external;
-  classDef dotnet fill:#8b5cf6,stroke:#5b21b6,color:#fff;
-  classDef external fill:#6b7280,stroke:#374151,color:#fff;
+  classDef dotnet fill:#8b5cf6,stroke:#5b21b6,color:#ffffff;
+  classDef external fill:#6b7280,stroke:#374151,color:#ffffff;
   `} />
 
 Notes: core enrichment, anomaly detection and write-paths live in this container.
