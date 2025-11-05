@@ -1,0 +1,31 @@
+@startuml telemetry-sequence-03-processing
+skinparam backgroundColor #111827
+skinparam sequenceArrowColor #9CA3AF
+skinparam sequenceLifeLineBorderColor #6B7280
+skinparam sequenceActivationBorderColor #93C5FD
+skinparam sequenceActivationBackgroundColor #2563EB
+skinparam actorBackgroundColor #1F2937
+skinparam actorBorderColor #6B7280
+skinparam actorFontColor #E5E7EB
+skinparam noteBackgroundColor #374151
+skinparam noteFontColor #F9FAFB
+
+autonumber
+
+box "Processing & Storage" #1F2937
+  participant "📨 Kafka Event Bus" as K
+  participant "🧠 Telemetry Processor Worker" as TP
+  participant "💾 TelemetryDB (Time Series)" as TDB
+end box
+
+note over K,TDB #033016
+  Phase 3 · Processing & Persistence
+end note
+K -> TP : Consume telemetry.raw\n(key = carId+sessionId)
+activate TP
+TP -> TP : Validate · enrich · compute features
+TP -> TDB : Upsert time-series points\n(idempotent key)
+TP -> K : Publish telemetry.enriched
+deactivate TP
+
+@enduml

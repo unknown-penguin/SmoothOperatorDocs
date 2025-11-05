@@ -1,0 +1,38 @@
+@startuml telemetry-sequence-05-realtime
+skinparam backgroundColor #111827
+skinparam sequenceArrowColor #9CA3AF
+skinparam sequenceLifeLineBorderColor #6B7280
+skinparam sequenceActivationBorderColor #93C5FD
+skinparam sequenceActivationBackgroundColor #2563EB
+skinparam actorBackgroundColor #1F2937
+skinparam actorBorderColor #6B7280
+skinparam actorFontColor #E5E7EB
+skinparam noteBackgroundColor #374151
+skinparam noteFontColor #F9FAFB
+
+autonumber
+
+participant "Kafka Event Bus" as K
+participant "Realtime Gateway" as RT
+participant "Redis Cache" as Cache
+participant "Frontend Dashboard" as UI
+
+note over K, UI #7C2D12
+  Phase 5 - Realtime Distribution
+end note
+par
+  K -> RT : alerts.triggered
+  RT -> Cache : cache payload
+  RT -> UI : websocket push - alerts
+  RT -> Cache : mark delivered
+and
+  K -> RT : telemetry.enriched
+  RT -> Cache : update latest values
+  RT -> UI : websocket telemetry
+  RT -> Cache : delivery status
+and
+  K -> RT : race.updated
+  RT -> UI : websocket race status
+end
+
+@enduml

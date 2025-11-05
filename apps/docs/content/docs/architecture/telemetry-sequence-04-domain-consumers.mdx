@@ -1,0 +1,12 @@
+---
+title: "Telemetry Sequence - Phase 4: Domain Consumers"
+description: "Alerting and Race Control consumers"
+---
+
+This page isolates Phase 4 (Domain Consumers) of the full telemetry sequence.
+
+<Diagram lang="plantuml" path="telemetry-sequence-04-domain-consumers.puml" alt="Phase 4: Domain Consumers" />
+
+Brief notes:
+- Shows parallel consumers: Alerting and Race Control.
+- Alerting evaluates thresholds and may publish alerts; Race Control updates race state and may publish strategy updates.

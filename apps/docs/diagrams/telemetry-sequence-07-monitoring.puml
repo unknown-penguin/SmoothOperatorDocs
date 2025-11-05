@@ -1,0 +1,37 @@
+@startuml telemetry-sequence-07-monitoring
+skinparam backgroundColor #111827
+skinparam sequenceArrowColor #9CA3AF
+skinparam sequenceLifeLineBorderColor #6B7280
+skinparam sequenceActivationBorderColor #93C5FD
+skinparam sequenceActivationBackgroundColor #2563EB
+skinparam actorBackgroundColor #1F2937
+skinparam actorBorderColor #6B7280
+skinparam actorFontColor #E5E7EB
+skinparam noteBackgroundColor #374151
+skinparam noteFontColor #F9FAFB
+
+autonumber
+
+participant "🌐 Ingress Web API" as API
+participant "📨 Kafka Event Bus" as K
+participant "🧠 Telemetry Processor Worker" as TP
+participant "💾 TelemetryDB (Time Series)" as TDB
+participant "💾 AlertingDB" as ADB
+
+note over API,TP #991B1B
+  Phase 7 · Monitoring & Resilience
+end note
+opt Ingress backpressure
+  API -> API : Shed load / rate limit
+  // edge buffer/retry behavior shown as internal
+  API -> API : Local buffer · retry with backoff
+end
+opt Processing lag
+  K -> TP : Backlog grows
+  TP -> TP : Autoscale consumers · DLQ on poison messages
+end
+note over TDB,ADB
+  Idempotent writes prevent duplicates on retries
+end note
+
+@enduml

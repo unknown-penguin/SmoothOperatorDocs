@@ -1,0 +1,23 @@
+@startuml telemetry-sequence-06-ui
+skinparam backgroundColor #111827
+skinparam sequenceArrowColor #9CA3AF
+skinparam sequenceLifeLineBorderColor #6B7280
+skinparam sequenceActivationBorderColor #93C5FD
+skinparam sequenceActivationBackgroundColor #2563EB
+skinparam actorBackgroundColor #1F2937
+skinparam actorBorderColor #6B7280
+skinparam actorFontColor #E5E7EB
+skinparam noteBackgroundColor #374151
+skinparam noteFontColor #F9FAFB
+
+autonumber
+
+participant "💻 Frontend Dashboard" as UI
+
+note over UI #581C87
+  Phase 6 · Dashboard Updates
+end note
+UI -> UI : Update charts & gauges
+UI -> UI : Show alerts & race status
+
+@enduml

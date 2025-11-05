@@ -1,0 +1,16 @@
+---
+title: Formula Telemetry ERD
+description: Entity Relationship Diagram for Formula Race telemetry models
+icon: Database
+---
+
+# Formula Telemetry ERD
+
+This page shows the Entity-Relationship Diagram generated from the Telemetry API entity classes in the FormulaRaceControlPlatform repository.
+
+<Diagram lang="plantuml" path="formula-telemetry-erd.puml" alt="Formula Telemetry ERD" />
+
+Notes:
+
+- The diagram is sourced from `apps/docs/diagrams/formula-telemetry-erd.puml`.
+- The models reference cars via `CarId`/`CarNumber` fields; there are no explicit EF navigation properties or FK annotations in the inspected classes.

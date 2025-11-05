@@ -1,0 +1,12 @@
+---
+title: "Telemetry Sequence - Phase 3: Processing & Persistence"
+description: "Telemetry processing and storage"
+---
+
+This page isolates Phase 3 (Processing & Persistence) of the full telemetry sequence.
+
+<Diagram lang="plantuml" path="telemetry-sequence-03-processing.puml" alt="Phase 3: Processing & Persistence" />
+
+Brief notes:
+- Consumers validate, enrich, and upsert time-series data into the telemetry database.
+- Enriched events are published back to the event bus for downstream consumers.

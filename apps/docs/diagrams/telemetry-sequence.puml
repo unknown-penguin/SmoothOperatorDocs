@@ -1,0 +1,156 @@
+@startuml telemetry-sequence
+' === Theme ===
+skinparam BackgroundColor #111827
+skinparam sequence {
+  ArrowColor #9CA3AF
+  LifeLineBorderColor #6B7280
+  LifeLineBackgroundColor #111827
+  ActivationBorderColor #93C5FD
+  ActivationBackgroundColor #2563EB
+  ActorBackgroundColor #1F2937
+  ActorBorderColor #6B7280
+  ActorFontColor #E5E7EB
+  ParticipantBackgroundColor #111827
+  ParticipantBorderColor #6B7280
+  ParticipantFontColor #F3F4F6
+  NoteBackgroundColor #374151
+  NoteFontColor #F9FAFB
+}
+
+autonumber
+
+' === Lanes / Boxes ===
+box "Vehicle / Edge" #1F2937
+  actor "🏎️ Driver/Car" as Driver
+  participant "📊 Vehicle Sensors" as Sensors
+  participant "🔧 Edge Collector" as Edge
+end box
+
+box "Ingestion" #111827
+  participant "🌐 Ingress Web API" as API
+  participant "📨 Kafka Event Bus" as K
+end box
+
+box "Processing & Storage" #1F2937
+  participant "🧠 Telemetry Processor Worker" as TP
+  participant "💾 TelemetryDB (Time Series)" as TDB
+end box
+
+box "Backend Services" #111827
+  participant "🚨 Alerting Service" as AL
+  participant "💾 AlertingDB" as ADB
+  participant "🏁 Race Control" as RC
+end box
+
+box "Realtime" #1F2937
+  participant "⚡ Realtime Gateway" as RT
+  participant "🗄️ Redis Cache" as Cache
+end box
+
+box "Presentation" #111827
+  participant "💻 Frontend Dashboard" as UI
+end box
+
+' === Phase 1: Collection ===
+note over Driver,Sensors #1E40AF
+  Phase 1 · Data Collection
+end note
+Driver -> Sensors : Racing generates sensor data
+Sensors -> Edge : Raw frames (CAN bus)
+Edge -> Edge : Aggregate & buffer
+Edge -> Edge : Filter & compress
+
+' === Phase 2: Ingestion (async-first) ===
+note over Edge,API #065F46
+  Phase 2 · Ingestion
+end note
+Edge -> API : Batched telemetry (HTTP / gRPC / MQTT)
+activate API
+API -> API : AuthN/AuthZ \n schema validation
+API -> K : Publish telemetry.raw
+API --> Edge : 202 Accepted
+deactivate API
+
+' === Phase 3: Processing & Persistence ===
+note over K,TDB #033016
+  Phase 3 · Processing & Persistence
+end note
+K -> TP : Consume telemetry.raw\n(key = carId+sessionId)
+activate TP
+TP -> TP : Validate · enrich · compute features
+TP -> TDB : Upsert time-series points\n(idempotent key)
+TP -> K : Publish telemetry.enriched
+deactivate TP
+
+' === Phase 4: Domain Consumers ===
+note over K,RC #B45309
+  Phase 4 · Domain Processing
+end note
+par Alerting
+  K -> AL : telemetry.enriched
+  activate AL
+  AL -> ADB : Check thresholds/cooldowns
+  alt Critical
+    AL -> K : alerts.triggered
+  else Not critical
+    AL -> AL : Record metrics
+  end
+  deactivate AL
+else Race
+  K -> RC : telemetry.enriched
+  activate RC
+  RC -> RC : Update positions & lap times
+  opt Strategy update
+    RC -> K : race.updated
+  end
+  deactivate RC
+end
+
+' === Phase 5: Realtime Fan-out ===
+note over K,UI #7C2D12
+  Phase 5 · Realtime Distribution
+end note
+par Alerts stream
+  K -> RT : alerts.triggered
+  activate RT
+  RT -> Cache : Cache payload
+  RT --> UI : WebSocket push (alerts)
+  RT --> Cache : Mark delivered
+  deactivate RT
+else Telemetry stream
+  K -> RT : telemetry.enriched
+  activate RT
+  RT -> Cache : Update latest values
+  RT --> UI : WebSocket telemetry
+  RT --> Cache : Delivery status
+  deactivate RT
+else Race updates
+  K -> RT : race.updated
+  RT --> UI : WebSocket race status
+end
+
+
+' === Phase 6: UI Updates ===
+note over UI #581C87
+  Phase 6 · Dashboard Updates
+end note
+UI -> UI : Update charts & gauges
+UI -> UI : Show alerts & race status
+
+' === Phase 7: Monitoring & Resilience ===
+note over API,TP #991B1B
+  Phase 7 · Monitoring & Resilience
+end note
+opt Ingress backpressure
+  API -> API : Shed load / rate limit
+  Edge -> Edge : Local buffer · retry with backoff
+end
+opt Processing lag
+  K -> TP : Backlog grows
+  TP -> TP : Autoscale consumers · DLQ on poison messages
+end
+note over TDB,ADB
+  Idempotent writes prevent duplicates on retries
+end note
+
+@enduml

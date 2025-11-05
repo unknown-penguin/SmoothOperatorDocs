@@ -1,0 +1,46 @@
+@startuml telemetry-sequence-04-domain-consumers
+skinparam backgroundColor #111827
+skinparam sequenceArrowColor #9CA3AF
+skinparam sequenceLifeLineBorderColor #6B7280
+skinparam sequenceActivationBorderColor #93C5FD
+skinparam sequenceActivationBackgroundColor #2563EB
+skinparam actorBackgroundColor #1F2937
+skinparam actorBorderColor #6B7280
+skinparam actorFontColor #E5E7EB
+skinparam noteBackgroundColor #374151
+skinparam noteFontColor #F9FAFB
+
+autonumber
+
+box "Backend Services" #111827
+  participant "🚨 Alerting Service" as AL
+  participant "💾 AlertingDB" as ADB
+  participant "🏁 Race Control" as RC
+end box
+
+participant "📨 Kafka Event Bus" as K
+
+note over K,RC #B45309
+  Phase 4 · Domain Processing
+end note
+par Alerting
+  K -> AL : telemetry.enriched
+  activate AL
+  AL -> ADB : Check thresholds/cooldowns
+  alt Critical
+    AL -> K : alerts.triggered
+  else Not critical
+    AL -> AL : Record metrics
+  end
+  deactivate AL
+and Race
+  K -> RC : telemetry.enriched
+  activate RC
+  RC -> RC : Update positions & lap times
+  opt Strategy update
+    RC -> K : race.updated
+  end
+  deactivate RC
+end
+
+@enduml

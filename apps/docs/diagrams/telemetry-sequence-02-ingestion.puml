@@ -1,0 +1,34 @@
+@startuml telemetry-sequence-02-ingestion
+skinparam backgroundColor #111827
+skinparam sequenceArrowColor #9CA3AF
+skinparam sequenceLifeLineBorderColor #6B7280
+skinparam sequenceActivationBorderColor #93C5FD
+skinparam sequenceActivationBackgroundColor #2563EB
+skinparam actorBackgroundColor #1F2937
+skinparam actorBorderColor #6B7280
+skinparam actorFontColor #E5E7EB
+skinparam noteBackgroundColor #374151
+skinparam noteFontColor #F9FAFB
+
+autonumber
+
+box "Vehicle / Edge" #1F2937
+  participant "🔧 Edge Collector" as Edge
+end box
+
+box "Ingestion" #111827
+  participant "🌐 Ingress Web API" as API
+  participant "📨 Kafka Event Bus" as K
+end box
+
+note over Edge,API #065F46
+  Phase 2 · Ingestion
+end note
+Edge -> API : Batched telemetry (HTTP / gRPC / MQTT)
+activate API
+API -> API : AuthN/AuthZ \n schema validation
+API -> K : Publish telemetry.raw
+API --> Edge : 202 Accepted
+deactivate API
+
+@enduml

@@ -1,0 +1,152 @@
+@startuml FORMULA_TELEMETRY_ERD
+
+' ERD generated from FormulaRaceControlPlatform/src/Telemetry.API/Data/Entities
+' No explicit navigation properties or FK attributes were found in the entity classes; entities reference cars by CarId (string) or CarNumber (int).
+
+left to right direction
+skinparam packageStyle rectangle
+
+package "Telemetry" {
+
+entity "PositionTrackData" as PositionTrackData {
+  * Id : UUID
+  --
+  CarId : String
+  Timestamp : DateTime
+  LapNumber : Int
+  SectorNumber : Int
+  GpsX : Double
+  GpsY : Double
+  GpsZ : Double
+  TrackPosition : Int
+  Speed : Double
+  DeltaToLeader : Double
+  CurrentLapTime : Double
+  BestLapTime : Double
+  SectorTimes : List<Double>
+}
+
+entity "EnginePowerUnit" as EnginePowerUnit {
+  * Id : UUID
+  --
+  EngineRpm : Int
+  CurrentGear : Int
+  ThrottlePosition : Double
+  BrakePressure : Double
+  ClutchState : Double
+  ErsDeployed : Double
+  ErsHarvested : Double
+  EngineTemp : Double
+  OilPressure : Double
+  FuelLevel : Double
+  FuelConsumptionRate : Double
+  EngineMode : String
+}
+
+entity "TyresSuspensionData" as TyresSuspensionData {
+  * Id : UUID
+  --
+  Timestamp : DateTimeOffset
+  CarNumber : Int
+  DriverCode : String
+  TyreTempFL : Float
+  TyreTempFR : Float
+  TyreTempRL : Float
+  TyreTempRR : Float
+  TyrePressureFL : Float
+  TyrePressureFR : Float
+  TyrePressureRL : Float
+  TyrePressureRR : Float
+  TyreCompound : String
+  TyreWearFL : Int
+  TyreWearFR : Int
+  TyreWearRL : Int
+  TyreWearRR : Int
+  SuspensionTravelFL : Float
+  SuspensionTravelFR : Float
+  SuspensionTravelRL : Float
+  SuspensionTravelRR : Float
+  RideHeightFront : Float
+  RideHeightRear : Float
+}
+
+entity "EnvironmentData" as EnvironmentData {
+  * Id : UUID
+  --
+  TrackTemperature : Double
+  AirTemperature : Double
+  Humidity : Double
+  WeatherType : String
+  RainLevel : Double
+  TrackSurfaceCondition : String
+}
+
+entity "EventRaceControl" as EventRaceControl {
+  * Id : UUID
+  --
+  Timestamp : DateTimeOffset
+  CarNumber : Int
+  DriverCode : String
+  YellowFlag : Boolean
+  RedFlag : Boolean
+  VirtualSafetyCar : Boolean
+  SafetyCarDeployed : Boolean
+  FlagZone : Int
+  PitWindowStatus : Int
+  PitStopCount : Int
+  PitStopTimes : String
+  SessionTimeLeft : Int
+  SessionType : Int
+}
+
+entity "DerivedCalculatedData" as DerivedCalculatedData {
+  * Id : UUID
+  --
+  Timestamp : DateTimeOffset
+  CarNumber : Int
+  DriverCode : String
+  EstimatedTyreLife : Float
+  PredictedPace : Float
+  FuelToFinish : Float
+  GapToCarAhead : Float
+  GapToCarBehind : Float
+  DeltaToPersonalBest : Float
+}
+
+entity "ControlsDriverInput" as ControlsDriverInput {
+  * Id : UUID
+  --
+  Timestamp : DateTimeOffset
+  CarNumber : Int
+  DriverCode : String
+  SteeringAngle : Float
+  SteeringTorque : Float
+  DrsActive : Boolean
+  DrsAvailable : Boolean
+  ErsMode : Int
+  DifferentialSettings : Int
+  ButtonFlags : Int
+}
+
+entity "CarStatusReliability" as CarStatusReliability {
+  * Id : UUID
+  --
+  Timestamp : DateTimeOffset
+  CarNumber : Int
+  DriverCode : String
+  CarStatus : Int
+  PitStatus : Int
+  ErrorCodes : String
+  WarningFlags : Int
+  BatteryVoltage : Float
+  CoolantTemp : Float
+  OilTemp : Float
+  CheckEngineLight : Boolean
+}
+
+}
+
+' Note: Entities reference cars via `CarId`/`CarNumber`; no explicit FK relationships were present in the inspected models.
+' If you maintain a `Car` entity in another project, we can add FK arrows linking these tables to `Car`.
+
+@enduml

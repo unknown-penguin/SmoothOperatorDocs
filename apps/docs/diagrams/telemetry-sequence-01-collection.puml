@@ -1,0 +1,30 @@
+@startuml telemetry-sequence-01-collection
+' Theme & colors (compatible skinparams)
+skinparam backgroundColor #111827
+skinparam sequenceArrowColor #9CA3AF
+skinparam sequenceLifeLineBorderColor #6B7280
+skinparam sequenceActivationBorderColor #93C5FD
+skinparam sequenceActivationBackgroundColor #2563EB
+skinparam actorBackgroundColor #1F2937
+skinparam actorBorderColor #6B7280
+skinparam actorFontColor #E5E7EB
+skinparam noteBackgroundColor #374151
+skinparam noteFontColor #F9FAFB
+
+autonumber
+
+box "Vehicle / Edge" #1F2937
+  actor "🏎️ Driver/Car" as Driver
+  participant "📊 Vehicle Sensors" as Sensors
+  participant "🔧 Edge Collector" as Edge
+end box
+
+note over Driver,Sensors #1E40AF
+  Phase 1 · Data Collection
+end note
+Driver -> Sensors : Racing generates sensor data
+Sensors -> Edge : Raw frames (CAN bus)
+Edge -> Edge : Aggregate & buffer
+Edge -> Edge : Filter & compress
+
+@enduml
