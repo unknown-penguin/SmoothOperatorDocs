@@ -4,6 +4,8 @@
   "icon": "Globe",
   "pages": [
     "index",
-    "c4"
+    "c4",
+    "formula-telemetry-erd",
+    "telemetry-sequence"
   ]
 }

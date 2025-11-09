@@ -1,0 +1,240 @@
+@startuml DEPLOYMENT_ARCHITECTURE
+!include <C4/C4_Deployment>
+
+LAYOUT_WITH_LEGEND()
+
+title F1 Telemetry Platform - Deployment Architecture
+
+' === Edge / Vehicle ===
+Deployment_Node(vehicle, "Race Car (Edge)", "Embedded Linux") {
+  Container(edge_collector, "Edge Collector", "Go", "Collects CAN bus data, buffers, transmits via 5G")
+  Container(local_buffer, "Local Storage", "SQLite", "Buffer during connectivity loss")
+}
+
+' === Cloud Provider (AWS/Azure/GCP) ===
+Deployment_Node(cloud, "Cloud Provider", "AWS / Azure / GCP") {
+
+  ' === Ingress Layer ===
+  Deployment_Node(ingress_zone, "Ingress Zone", "Public Subnet") {
+    Deployment_Node(waf_node, "WAF", "CloudFront / Azure Front Door") {
+      Container(waf, "Web Application Firewall", "Managed WAF", "DDoS protection, geo-filtering")
+    }
+
+    Deployment_Node(alb, "Load Balancer", "ALB / App Gateway") {
+      Container(lb, "Application Load Balancer", "Layer 7 LB", "TLS termination, health checks, routing")
+    }
+  }
+
+  ' === Kubernetes Cluster ===
+  Deployment_Node(k8s, "Kubernetes Cluster (EKS/AKS/GKE)", "Multi-AZ") {
+
+    ' Ingestion Namespace
+    Deployment_Node(ns_ingestion, "Namespace: ingestion", "K8s Namespace") {
+      Deployment_Node(mqtt_pod, "MQTT Broker Pods", "StatefulSet (3 replicas)") {
+        Container(mqtt, "EMQX Broker", "Erlang", "HA MQTT cluster")
+        ContainerDb(mqtt_vol, "Persistent Volume", "EBS / Disk", "Message persistence")
+      }
+
+      Deployment_Node(ingest_pod, "Ingestion Pods", "Deployment (5 replicas)") {
+        Container(ingest, "Ingestion Service", "Go", "MQTT → Kafka")
+      }
+    }
+
+    ' Processing Namespace
+    Deployment_Node(ns_processing, "Namespace: processing", "K8s Namespace") {
+      Deployment_Node(proc_pod, "Processor Pods", "Deployment (10 replicas)") {
+        Container(processor, "Telemetry Processor", ".NET", "Consume, enrich, persist")
+      }
+    }
+
+    ' Domain Services Namespace
+    Deployment_Node(ns_services, "Namespace: services", "K8s Namespace") {
+      Deployment_Node(alert_pod, "Alert Pods", "Deployment (3 replicas)") {
+        Container(alert, "Alert Service", ".NET", "Threshold monitoring")
+      }
+
+      Deployment_Node(mon_pod, "Monitoring API Pods", "Deployment (5 replicas)") {
+        Container(mon, "Monitoring API", ".NET", "Query service")
+      }
+
+      Deployment_Node(rc_pod, "RaceControl Pods", "Deployment (3 replicas)") {
+        Container(rc, "RaceControl Service", ".NET", "Commands & strategy")
+      }
+
+      Deployment_Node(auth_pod, "Auth Pods", "Deployment (3 replicas)") {
+        Container(auth, "Auth Service", ".NET", "JWT + RBAC")
+      }
+    }
+
+    ' Realtime Namespace
+    Deployment_Node(ns_realtime, "Namespace: realtime", "K8s Namespace") {
+      Deployment_Node(rt_pod, "Centrifugo Pods", "Deployment (5 replicas)") {
+        Container(centrifugo, "Centrifugo", "Go", "WebSocket gateway")
+      }
+    }
+
+    ' Frontend Namespace
+    Deployment_Node(ns_frontend, "Namespace: frontend", "K8s Namespace") {
+      Deployment_Node(ui_pod, "Frontend Pods", "Deployment (3 replicas)") {
+        Container(ui, "React SPA", "Node.js", "Server-side rendering")
+      }
+    }
+  }
+
+  ' === Managed Services Layer ===
+  Deployment_Node(managed, "Managed Services", "Fully Managed") {
+    Deployment_Node(kafka_cluster, "MSK / Event Hubs", "3 AZ") {
+      ContainerDb(kafka, "Kafka Cluster", "Kafka 3.5", "3 brokers, RF=3")
+    }
+
+    Deployment_Node(redis_cluster, "ElastiCache / Redis Enterprise", "3 AZ") {
+      ContainerDb(redis, "Redis Cluster", "Redis 7", "6 nodes (3 master, 3 replica)")
+    }
+
+    Deployment_Node(timescale_cluster, "RDS / Azure Database", "Multi-AZ") {
+      ContainerDb(timescaledb, "TimescaleDB", "PostgreSQL 15", "Primary + 2 read replicas")
+    }
+
+    Deployment_Node(postgres_cluster, "RDS PostgreSQL", "Multi-AZ") {
+      ContainerDb(postgres, "PostgreSQL", "PostgreSQL 15", "Metadata, config, users")
+    }
+
+    Deployment_Node(s3_bucket, "Object Storage", "S3 / Blob Storage") {
+      ContainerDb(s3, "Archive Storage", "S3", "Daily dumps, backups, compliance")
+    }
+  }
+
+  ' === Observability Stack ===
+  Deployment_Node(obs_zone, "Observability", "Private Subnet") {
+    Deployment_Node(prom_node, "Prometheus", "K8s StatefulSet") {
+      Container(prometheus, "Prometheus", "Prometheus", "Metrics collection & storage")
+    }
+
+    Deployment_Node(grafana_node, "Grafana", "K8s Deployment") {
+      Container(grafana, "Grafana", "Grafana", "Dashboards & alerting")
+    }
+
+    Deployment_Node(loki_node, "Loki", "K8s StatefulSet") {
+      Container(loki, "Loki", "Grafana Loki", "Log aggregation")
+    }
+
+    Deployment_Node(jaeger_node, "Jaeger", "K8s Deployment") {
+      Container(jaeger, "Jaeger", "Jaeger", "Distributed tracing")
+    }
+  }
+
+  ' === CDN ===
+  Deployment_Node(cdn, "CDN", "CloudFront / Cloudflare") {
+    Container(cdn_edge, "CDN Edge Locations", "Global PoPs", "Static assets, cached responses")
+  }
+}
+
+' === External Services ===
+Deployment_Node(external, "External Services", "SaaS") {
+  Container(pagerduty, "PagerDuty", "SaaS", "Incident management")
+  Container(slack, "Slack", "SaaS", "Team notifications")
+  Container(auth0, "Auth0 / Okta", "SaaS", "Identity provider")
+}
+
+' === Relationships ===
+Rel(vehicle, waf, "MQTT/TLS", "5G/WiFi")
+Rel(waf, lb, "Filtered traffic", "HTTPS")
+Rel(lb, mqtt, "Route MQTT", "MQTTS")
+Rel(lb, ui, "Route web", "HTTPS")
+Rel(lb, mon, "Route API", "HTTPS")
+
+Rel(mqtt, mqtt_vol, "Persist messages", "")
+Rel(mqtt, ingest, "Deliver messages", "")
+Rel(ingest, kafka, "Produce", "")
+
+Rel(kafka, processor, "Consume raw", "")
+Rel(processor, timescaledb, "Batch write", "")
+Rel(processor, postgres, "Read metadata", "")
+Rel(processor, kafka, "Produce enriched", "")
+
+Rel(kafka, alert, "Consume enriched", "")
+Rel(kafka, mon, "Consume enriched", "")
+Rel(kafka, rc, "Consume enriched", "")
+Rel(kafka, centrifugo, "Consume enriched", "")
+
+Rel(centrifugo, redis, "Pub/sub", "")
+Rel(mon, redis, "Cache", "")
+Rel(mon, timescaledb, "Query", "")
+
+Rel(auth, postgres, "Verify users", "")
+Rel(auth, auth0, "OIDC", "HTTPS")
+
+Rel(ui, centrifugo, "WebSocket", "")
+Rel(cdn_edge, ui, "Serve static", "HTTPS")
+
+' Observability
+Rel(mqtt, prometheus, "Metrics", "")
+Rel(ingest, prometheus, "Metrics", "")
+Rel(processor, prometheus, "Metrics", "")
+Rel(alert, loki, "Logs", "")
+Rel(processor, jaeger, "Traces", "")
+
+Rel(prometheus, grafana, "Query", "")
+Rel(loki, grafana, "Query", "")
+Rel(grafana, pagerduty, "Alerts", "HTTPS")
+Rel(grafana, slack, "Notifications", "HTTPS")
+
+' Backup
+Rel(timescaledb, s3, "Daily backup", "")
+Rel(postgres, s3, "Daily backup", "")
+
+' === Notes ===
+note right of k8s
+  **Kubernetes Configuration:**
+  - 3 Availability Zones
+  - Auto-scaling (HPA + CA)
+  - Resource limits enforced
+  - Network policies enabled
+  - Pod security policies
+  - Istio service mesh (optional)
+
+  **Node Pools:**
+  - ingestion: c6i.2xlarge (5-15 nodes)
+  - processing: c6i.4xlarge (10-30 nodes)
+  - services: m6i.xlarge (5-10 nodes)
+  - monitoring: m6i.2xlarge (3 nodes)
+end note
+
+note left of kafka
+  **Kafka Configuration:**
+  - 3 brokers across 3 AZ
+  - Replication factor: 3
+  - Min in-sync replicas: 2
+  - Partitions: 20 per topic
+  - Retention: 7 days
+  - Compression: lz4
+
+  **Topics:**
+  - telemetry.raw.v1
+  - telemetry.context.v1
+  - telemetry.enriched.v1
+  - racecontrol.commands.v1
+  - alerts.triggered
+end note
+
+note bottom of timescaledb
+  **TimescaleDB Config:**
+  - Primary + 2 read replicas
+  - Hypertables partitioned by day
+  - Auto-compression after 7 days
+  - Continuous aggregates for rollups
+  - Data retention: 2 years
+  - Backup: Daily to S3
+  - Point-in-time recovery enabled
+end note
+
+note top of vehicle
+  **Edge Constraints:**
+  - Limited connectivity (5G)
+  - Local buffering required
+  - Compression before transmit
+  - Batch uploads when possible
+  - Max latency target: 100ms
+end note
+
+@enduml

@@ -1,0 +1,441 @@
+@startuml telemetry-sequence
+title F1 Telemetry Platform - End-to-End Sequence Flow
+skinparam style strictuml
+skinparam BackgroundColor #FFFFFF
+skinparam SequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #1F2937
+  ArrowThickness 2
+  LifeLineBorderColor #374151
+  LifeLineBackgroundColor #FFFFFF
+  ActivationBorderColor #2563EB
+  ActivationBackgroundColor #DBEAFE
+  ActorBackgroundColor #F0FDF4
+  ActorBorderColor #065F46
+  ActorFontColor #065F46
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #4B5563
+  ParticipantFontColor #111827
+  NoteBackgroundColor #FFFBEB
+  NoteBorderColor #F59E0B
+  NoteFontColor #7C2D12
+  GroupBackgroundColor #F0F9FF
+  GroupBorderColor #0369A1
+  DividerBackgroundColor #1F2937
+  DividerFontColor #FFFFFF
+}
+
+' === Participants ===
+actor "Driver/Car" as Driver
+participant "**Vehicle\nSensors**\n//CAN Bus//" as Sensors
+participant "**Edge\nCollector**\n//Go//" as Edge
+participant "**MQTT\nBroker**\n//EMQX//" as MQTT
+participant "**Ingestion\nService**\n//Go//" as Ingest
+participant "**Kafka**\n//Event Bus//" as Kafka
+participant "**Schema\nRegistry**\n//Avro/Proto//" as SR
+participant "**Processor**\n//.NET//" as Processor
+database "**TimescaleDB**\n//PostgreSQL//" as TSDB
+participant "**Alert\nService**\n//.NET//" as Alert
+participant "**Race\nControl**\n//.NET//" as RaceControl
+participant "**Centrifugo**\n//WS Gateway//" as Centrifugo
+database "**Redis**\n//Cache//" as Redis
+participant "**Frontend**\n//React//" as UI
+participant "**Prometheus**\n//Metrics//" as Prom
+participant "**Secrets\nManager**\n//Vault//" as Secrets
+
+== **Edge Data Collection** (~5ms) ==
+
+Driver -> Sensors : Racing action\n(acceleration, steering, braking)
+activate Sensors #DBEAFE
+note right: **200 Hz sampling**\nCAN bus frames
+
+Sensors -> Sensors : Read 50+ sensors
+note right
+  **Sensor Types:**
+  • Engine (RPM, temp, fuel)
+  • Tyres (temp, pressure, wear)
+  • GPS (position, speed)
+  • G-forces, suspension
+end note
+
+Sensors -> Edge : **CAN frames**\n(raw binary data)
+deactivate Sensors
+activate Edge #DBEAFE
+
+Edge -> Edge : **Parse CAN protocol**
+note right: Decode proprietary\ntelemetry format
+
+Edge -> Edge : **Aggregate 10 samples**\n(50ms batches)
+note right: Reduce transmission\noverhead
+
+Edge -> Edge : **Filter noise**\n(Kalman filter)
+
+Edge -> Edge : **Compress payload**\n(gzip, ~70% reduction)
+
+== **Cloud Ingestion** (~20ms) ==
+
+Edge -> MQTT : **PUBLISH** telemetry/car/{carId}\n//MQTT over TLS (5G)//
+deactivate Edge
+activate MQTT #DBEAFE
+note right: QoS 1 (at least once)\nRetained: false
+
+MQTT -> Ingest : **SUBSCRIBE** telemetry/*\n(topic wildcard)
+activate Ingest #DBEAFE
+
+group Authentication & Validation
+  Ingest -> Ingest : **Verify JWT token**\n(embedded in MQTT connect)
+  note right: mTLS certificate\nvalidation
+
+  Ingest -> Ingest : **Schema validation**\n(JSON Schema v7)
+  alt Schema Invalid
+    Ingest --> MQTT : **PUBACK** (reject)
+    MQTT --> Edge : Connection error
+    note over Edge #FFE4E4: **Error**: Retry with\nexponential backoff
+  end
+end group
+
+Ingest -> Secrets : **Fetch credentials**\n(Kafka broker auth)
+Secrets --> Ingest : ClientId/Secret
+
+Ingest -> Ingest : **Normalize data**\n(unit conversion, enrichment)
+note right
+  • Convert units
+  • Add metadata
+  • Assign partition key
+end note
+
+Ingest -> SR : **Serialize** Avro payload\nsubject: telemetry.raw.v1
+note right: Resolve schema id;\nregister if new
+Ingest -> Kafka : **PRODUCE** topic://telemetry.raw.v1\nkey: {carId}-{sessionId}
+deactivate MQTT
+activate Kafka #DBEAFE
+note right: Partition by carId\nfor ordering
+
+Kafka --> Ingest : **ACK** (offset: 123456)
+Ingest --> MQTT : **PUBACK** (success)
+deactivate Ingest
+
+== **Stream Processing** (~50ms) ==
+
+Kafka -> Processor : **CONSUME** telemetry.raw.v1\n(consumer group: processors)
+deactivate Kafka
+activate Processor #DBEAFE
+note right: Consumer offset: 123456\nPartition: 5
+
+Processor -> Secrets : **Fetch credentials**\n(DB/Kafka auth)
+Secrets --> Processor : Passwords/Tokens
+
+Processor -> SR : **Fetch schema** telemetry.raw.v1
+SR --> Processor : Schema id / definition
+
+group Data Enrichment Pipeline
+  Processor -> Processor : **1. Schema validation**
+  alt Invalid schema
+    Processor -> Kafka : **PRODUCE** DLQ.telemetry.invalid
+    note right #FFE4E4: Dead Letter Queue\nfor manual review
+  end
+
+  Processor -> Processor : **2. Deduplication check**\n(idempotency key)
+  note right: Key = carId + timestamp\n(nanosecond precision)
+
+  alt Duplicate detected
+    Processor -> Processor : Skip processing
+    note right #FFF4E4: **Duplicate skipped**\nIncrement skip counter
+  end
+
+  Processor -> TSDB : **SELECT** car metadata\n(carId, team, driver)
+  activate TSDB #DBEAFE
+  TSDB --> Processor : Car details
+  deactivate TSDB
+
+  Processor -> Processor : **3. Merge context**\n(car, session, track data)
+
+  Processor -> Processor : **4. Compute features**
+  note right
+    **Derived Metrics:**
+    • Lap time deltas
+    • Tyre degradation rate
+    • Fuel consumption
+    • Predictive pace
+  end note
+
+  Processor -> Processor : **5. Anomaly detection**
+  note right: ML model scoring\nThreshold rules
+
+  alt Anomaly detected
+    Processor -> Processor : Flag for alert
+    note right #FFE4E4: **Anomaly**: Temp > 120°C
+  end
+end group
+
+group Persistence (Batch Write)
+  Processor -> Processor : **Buffer records**\n(batch size: 1000)
+  note right: Batch every 1s\nor 1000 records
+
+  Processor -> TSDB : **INSERT** batch\n(hypertable: telemetry_data)
+  activate TSDB #DBEAFE
+  note right: COPY command\nfor bulk insert
+
+  alt DB Write Failure
+    TSDB --> Processor : **ERROR** connection timeout
+    Processor -> Processor : **Circuit breaker OPEN**
+    note over Processor #FFE4E4: Fallback: Buffer to disk\nRetry after 30s
+  else Success
+    TSDB --> Processor : **OK** (1000 rows inserted)
+    deactivate TSDB
+  end
+end group
+
+Processor -> Processor : **Emit metrics**\n(lag, throughput, errors)
+Processor -> Prom : **POST** /metrics
+activate Prom #DBEAFE
+Prom --> Processor : 200 OK
+deactivate Prom
+
+Processor -> Kafka : **PRODUCE** telemetry.enriched.v1
+activate Kafka #DBEAFE
+note right: Enriched data with\nall computed features
+
+Kafka --> Processor : **ACK** committed
+deactivate Processor
+deactivate Kafka
+
+== **Domain Services** (Parallel) ==
+
+par **Alert Service**
+  Kafka -> Alert : **CONSUME** enriched.v1
+  activate Alert #DBEAFE
+  activate Kafka #DBEAFE
+
+  Alert -> Alert : **Evaluate rules**\n(temperature, pressure, etc.)
+  note right
+    **Rule Engine:**
+    IF temp > 120°C
+    AND duration > 5s
+    THEN trigger alert
+  end note
+
+  alt **Critical threshold breached**
+    Alert -> Alert : Check alert cooldown\n(dedupe 60s window)
+
+    alt Not in cooldown
+      Alert -> Kafka : **PRODUCE** alerts.triggered
+      note right #FFE4E4: **CRITICAL ALERT**\nEngine temp: 125°C
+    end
+  else Normal
+    Alert -> Alert : Update metrics only
+  end
+
+  Alert -> Prom : Emit alert metrics
+  deactivate Alert
+
+else **Race Control Service**
+  Kafka -> RaceControl : **CONSUME** enriched.v1
+  activate RaceControl #DBEAFE
+
+  RaceControl -> RaceControl : **Update race state**
+  note right
+    • Current lap times
+    • Sector times
+    • Position tracking
+    • Gap calculations
+  end note
+
+  RaceControl -> RaceControl : **Strategy calculation**
+  note right
+    • Pit stop windows
+    • Tyre life prediction
+    • Fuel-to-finish
+  end note
+
+  opt **Strategy needs update**
+    RaceControl -> Kafka : **PRODUCE** race.updated
+    note right: New strategy:\nPit on lap 35
+  end
+
+  RaceControl -> Prom : Emit race metrics
+  deactivate RaceControl
+  deactivate Kafka
+end
+
+== **Real-time Distribution** (~10ms) ==
+
+group **WebSocket Fan-out**
+  par **Alert Stream**
+    Kafka -> Centrifugo : **CONSUME** alerts.triggered
+    activate Kafka #DBEAFE
+    activate Centrifugo #DBEAFE
+
+    Centrifugo -> Redis : **PUBLISH** channel://alerts:critical
+    activate Redis #DBEAFE
+    Redis --> Centrifugo : OK (3 subscribers)
+    deactivate Redis
+
+    Centrifugo -> UI : **WebSocket PUSH**\nEvent: alert.critical
+    activate UI #DBEAFE
+    note right: Binary frame\nProtobuf encoded
+
+    UI --> Centrifugo : **WS ACK**
+    deactivate Centrifugo
+
+  else **Telemetry Stream**
+    Kafka -> Centrifugo : **CONSUME** enriched.v1
+    activate Centrifugo #DBEAFE
+
+    Centrifugo -> Redis : **SET** latest:car:{carId}
+    activate Redis #DBEAFE
+    note right: TTL: 60s\nKeep latest values
+    Redis --> Centrifugo : OK
+
+    Centrifugo -> Redis : **PUBLISH** channel://telemetry:{carId}
+    Redis --> Centrifugo : OK (15 subscribers)
+    deactivate Redis
+
+    Centrifugo -> UI : **WebSocket PUSH**\nEvent: telemetry.update
+    note right: ~20 updates/sec\nThrottled per client
+
+    UI --> Centrifugo : **WS ACK**
+    deactivate Centrifugo
+
+  else **Race Updates**
+    Kafka -> Centrifugo : **CONSUME** race.updated
+    activate Centrifugo #DBEAFE
+
+    Centrifugo -> UI : **WebSocket PUSH**\nEvent: race.strategy
+    note right: Strategy change\nBroadcast to all
+
+    UI --> Centrifugo : **WS ACK**
+    deactivate Centrifugo
+    deactivate Kafka
+  end
+end group
+
+== **UI Rendering** (~16ms @ 60fps) ==
+
+UI -> UI : **Parse WebSocket message**
+note right: Deserialize\nProtobuf/JSON
+
+UI -> UI : **Update React state**\n(Redux store)
+
+group **Render Cycle**
+  UI -> UI : **Re-render components**
+  note right
+    **Components Updated:**
+    • Live telemetry chart
+    • Lap time table
+    • Position tracker
+    • Alert banner
+  end note
+
+  UI -> UI : **Canvas redraw**\n(Chart.js / D3)
+  note right: Throttled to 60fps\nusing requestAnimationFrame
+
+  UI -> UI : **DOM update**
+  note right: React Virtual DOM\ndiff & patch
+end group
+
+deactivate UI
+
+== **Error Handling & Resilience** ==
+
+group **Network Failure Scenario**
+  Edge -> MQTT : **PUBLISH** (network timeout)
+  activate Edge #FFE4E4
+  activate MQTT #FFE4E4
+
+  MQTT --> Edge : **TIMEOUT** (no response)
+  deactivate MQTT
+
+  Edge -> Edge : **Fallback: Local buffer**
+  note right #FFE4E4
+    **SQLite buffer activated**
+    Store locally until
+    connectivity restored
+  end note
+
+  Edge -> Edge : **Retry** with exponential backoff
+  note right: Attempt 1: 1s\nAttempt 2: 2s\nAttempt 3: 4s
+
+  Edge -> MQTT : **PUBLISH** (retry successful)
+  activate MQTT #E4FFE4
+  MQTT --> Edge : **PUBACK**
+  deactivate MQTT
+  deactivate Edge
+  note right #E4FFE4: **Recovered**\nFlush buffered data
+end group
+
+group **Processing Lag Detection**
+  Kafka -> Processor : Consumer lag > 1000 msgs
+  activate Processor #FFE4E4
+  activate Kafka #FFE4E4
+
+  Processor -> Processor : **Circuit Breaker: HALF-OPEN**
+  note right #FFE4E4: Lag threshold exceeded\nTrigger auto-scaling
+
+  Processor -> Prom : **Alert**: High consumer lag
+  activate Prom #FFE4E4
+  Prom -> Prom : **Fire alert** → PagerDuty
+  deactivate Prom
+
+  note over Processor #FFF4E4: **Kubernetes HPA**\nScale from 10 → 20 pods
+
+  Processor -> Kafka : **Increase** parallel consumers
+  note right: Rebalance partitions\nacross 20 consumers
+
+  Kafka --> Processor : Lag decreasing
+  deactivate Kafka
+
+  Processor -> Processor : **Circuit Breaker: CLOSED**
+  deactivate Processor
+  note right #E4FFE4: **Recovered**\nLag < 100 msgs
+end group
+
+group **Database Circuit Breaker**
+  Processor -> TSDB : **INSERT** batch (connection refused)
+  activate Processor #FFE4E4
+  activate TSDB #FFE4E4
+
+  TSDB --> Processor : **ERROR** connection pool exhausted
+  deactivate TSDB
+
+  Processor -> Processor : **Circuit Breaker: OPEN**
+  note right #FFE4E4
+    **Breaker opened after 5 failures**
+    Fallback: Buffer to disk
+    Retry after 30s timeout
+  end note
+
+  Processor -> Processor : Wait 30s...
+
+  Processor -> TSDB : **Health check** SELECT 1
+  activate TSDB #E4FFE4
+  TSDB --> Processor : OK
+  deactivate TSDB
+
+  Processor -> Processor : **Circuit Breaker: HALF-OPEN**
+  note right #FFF4E4: Test with 1 request
+
+  Processor -> TSDB : **INSERT** batch (test)
+  activate TSDB #E4FFE4
+  TSDB --> Processor : **OK** success
+  deactivate TSDB
+
+  Processor -> Processor : **Circuit Breaker: CLOSED**
+  deactivate Processor
+  note right #E4FFE4: **Recovered**\nResume normal flow
+end group
+
+note over Driver,UI
+  **End-to-End Latency Summary:**
+  • Edge Collection: ~5ms
+  • Cloud Ingestion: ~20ms
+  • Stream Processing: ~50ms
+  • Real-time Push: ~10ms
+  • UI Rendering: ~16ms
+  **Total: ~100ms** (sensor to screen)
+
+  **Throughput:** 1000+ messages/sec per car
+  **Reliability:** 99.9% (multi-AZ, retries, DLQ)
+end note
+
+@enduml

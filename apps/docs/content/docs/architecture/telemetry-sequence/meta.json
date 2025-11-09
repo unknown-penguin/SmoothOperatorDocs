@@ -1,0 +1,21 @@
+{
+  "title": "Telemetry Sequence",
+  "description": "End-to-end telemetry data flow from edge to UI",
+  "icon": "Activity",
+  "pages": [
+    "collection",
+    "ingestion",
+    "ingestion-mqtt",
+    "processing",
+    "processing-enrichment",
+    "realtime",
+    "realtime-fanout",
+    "read-model-queries",
+    "alerting",
+    "race-control",
+    "token-refresh-realtime-auth",
+    "domain-consumers",
+    "ui-updates",
+    "monitoring-resilience"
+  ]
+}

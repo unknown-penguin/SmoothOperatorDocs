@@ -1,0 +1,8 @@
+{
+  "title": "Telemetry Realtime",
+  "description": "Realtime processing and fanout of telemetry data",
+  "icon": "Activity",
+  "pages": [
+    "solution-design"
+  ]
+}

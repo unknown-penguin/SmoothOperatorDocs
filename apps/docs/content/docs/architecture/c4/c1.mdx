@@ -1,5 +1,87 @@
 ---
-title: c1
-description: View the Scalar Galaxy example OpenAPI schema.
+title: C1 - System Context
+description: High-level system context showing the F1 Telemetry Platform and its external actors, data flows, and integrations.
 ---
 
+## System Context Diagram (C1)
+
+The Telemetry Platform ingests real-time data from race cars, processes it through a streaming pipeline, and delivers insights to race engineers and directors.
+
+<Diagram lang="mermaid" chart={`
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'16px', 'fontFamily':'arial'}}}%%
+
+flowchart TD
+  %% ============================================
+  %% C1 - System Context Diagram
+  %% ============================================
+
+  %% === External Actors - Data Sources ===
+  actorCar["🏎️ Race Car\n(on-car telemetry sensors)"]
+  actorSim["🔧 ECU Simulator\n(testing & development)"]
+  actorRaceProvider["🏁 Race Data Provider\n(FIA timing, weather, track)"]
+
+  %% === External Actors - Human Users ===
+  actorEngineer["👤 Race Engineer\n(performance analysis)"]
+  actorDirector["👤 Race Director\n(strategy & commands)"]
+  actorAdmin["🔧 Platform Admin\n(operations & monitoring)"]
+
+  %% === External Systems ===
+  actorIdentity["🔐 Identity Provider\n(SSO / OAuth2)"]
+  actorMonitoring["📊 Observability Stack\n(Prometheus, Grafana)"]
+  actorStorage["💾 Backup & Archive\n(S3 / Blob Storage)"]
+  actorAlert["🚨 Notification Services\n(PagerDuty, Slack)"]
+
+  %% === The System ===
+  subgraph System["⚡ F1 Telemetry Platform"]
+    direction TB
+    Platform["Real-time Telemetry System\n\n• Ingests 1000+ msg/sec from cars\n• Stream processing & enrichment\n• Time-series storage & analysis\n• Real-time dashboards & alerts\n• Race strategy APIs"]
+  end
+
+  %% === Data Ingestion Flows ===
+  actorCar -->|"MQTT: telemetry/*\n~200 Hz sensor data"| Platform
+  actorSim -->|"MQTT: telemetry/*\ntest data & replays"| Platform
+  actorRaceProvider -->|"REST/WebSocket\nflags, weather, positions"| Platform
+
+  %% === User Interactions ===
+  actorEngineer -->|"HTTPS Web UI\nview dashboards & metrics"| Platform
+  actorDirector -->|"HTTPS + WebSocket\ncommands & real-time view"| Platform
+  actorAdmin -->|"Admin API\nconfig & ops"| Platform
+
+  %% === Bidirectional Flows ===
+  Platform <-->|"OAuth2/OIDC\nauthentication"| actorIdentity
+  Platform -->|"Metrics & logs\n(Prometheus, Loki)"| actorMonitoring
+  actorMonitoring -->|"health checks\nalertmanager"| Platform
+
+  Platform -->|"Critical alerts\n(threshold breaches)"| actorAlert
+  Platform -->|"Historical data\ndaily/weekly archives"| actorStorage
+  actorStorage -->|"restore\nfor analysis"| Platform
+
+  %% === Styling & Color Coding ===
+  classDef dataSources fill:#0ea5e9,stroke:#0369a1,color:#ffffff;
+  classDef users fill:#10b981,stroke:#065f46,color:#ffffff;
+  classDef systems fill:#6b7280,stroke:#374151,color:#ffffff;
+  classDef platform fill:#8b5cf6,stroke:#5b21b6,color:#ffffff,stroke-width:3px;
+
+  class actorCar,actorSim,actorRaceProvider dataSources;
+  class actorEngineer,actorDirector,actorAdmin users;
+  class actorIdentity,actorMonitoring,actorStorage,actorAlert systems;
+  class System platform;
+`} />
+
+### Key Architectural Decisions
+
+**Data Ingestion:**
+- MQTT for high-frequency telemetry (200 Hz from sensors)
+- REST/WebSocket for external race data (lower frequency)
+- Asynchronous ingestion with 202 Accepted responses
+
+**User Access:**
+- Web-based dashboards for engineers (read-mostly)
+- WebSocket for real-time updates (sub-second latency)
+- Command API for race directors (write operations)
+
+**External Integrations:**
+- OAuth2/OIDC for centralized authentication
+- Prometheus for metrics, Grafana for visualization
+- PagerDuty/Slack for critical alerting
+- S3 for long-term archival and compliance

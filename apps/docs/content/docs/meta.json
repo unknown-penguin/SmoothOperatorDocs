@@ -8,6 +8,9 @@
     "---OpenAPI---",
     "openapi",
     "---Architecture---",
-    "architecture"
+    "architecture",
+    "solution-designs",
+    "---Reference---",
+    "glossary"
   ]
 }

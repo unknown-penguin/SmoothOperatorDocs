@@ -1,0 +1,58 @@
+@startuml telemetry-sequence-domain-consumers
+skinparam style strictuml
+skinparam BackgroundColor #FFFFFF
+skinparam SequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #1F2937
+  ArrowThickness 2
+  LifeLineBorderColor #374151
+  LifeLineBackgroundColor #FFFFFF
+  ActivationBorderColor #2563EB
+  ActivationBackgroundColor #DBEAFE
+  ActorBackgroundColor #F0FDF4
+  ActorBorderColor #065F46
+  ActorFontColor #065F46
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #4B5563
+  ParticipantFontColor #111827
+  NoteBackgroundColor #FFFBEB
+  NoteBorderColor #F59E0B
+  NoteFontColor #7C2D12
+  GroupBackgroundColor #F0F9FF
+  GroupBorderColor #0369A1
+  DividerBackgroundColor #1F2937
+  DividerFontColor #FFFFFF
+}
+
+box "Backend Services"
+  participant "Alerting Service" as AL
+  participant "AlertingDB" as ADB
+  participant "Race Control" as RC
+end box
+
+participant "Kafka Event Bus" as K
+
+note over K,RC #7C2D12
+  Domain Processing
+end note
+par Alerting
+  K -> AL : telemetry.enriched
+  activate AL
+  AL -> ADB : Check thresholds/cooldowns
+  alt Critical
+    AL -> K : alerts.triggered
+  else Not critical
+    AL -> AL : Record metrics
+  end
+  deactivate AL
+else Race
+  K -> RC : telemetry.enriched
+  activate RC
+  RC -> RC : Update positions & lap times
+  opt Strategy update
+    RC -> K : race.updated
+  end
+  deactivate RC
+end
+
+@enduml

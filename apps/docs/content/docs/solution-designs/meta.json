@@ -1,0 +1,10 @@
+{
+  "title": "Solution Designs",
+  "description": "Architecture solution designs for different deployment scenarios",
+  "icon": "FileText",
+  "pages": [
+    "index",
+    "mvp-cost-optimized",
+    "solution-design"
+  ]
+}

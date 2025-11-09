@@ -1,0 +1,236 @@
+---
+title: Domain Glossary
+description: Complete glossary of F1 Telemetry Platform domain terms, systems, and concepts
+---
+
+# F1 Telemetry Platform — Domain Glossary
+
+Comprehensive reference for domain terminology used throughout the F1 Telemetry Platform.
+
+---
+
+## Car Systems & Power Unit
+
+### Power Unit (PU)
+The complete F1 engine system: internal combustion engine + hybrid systems (ERS).
+
+### ICE (Internal Combustion Engine)
+The petrol engine component of the power unit.
+
+### ERS (Energy Recovery System)
+Hybrid system that recovers energy under braking and exhaust heat, then deploys it for extra power.
+
+### MGU-K (Motor Generator Unit – Kinetic)
+Recovers kinetic energy during braking and returns it as electrical power.
+
+### MGU-H (Motor Generator Unit – Heat)
+Recovers heat energy from the turbocharger.
+
+### Turbocharger
+Compresses air into the engine to increase power output.
+
+### Fuel Flow
+Liters per hour moving through the power unit; governed by strict FIA regulations.
+
+### Throttle Position
+How much the driver presses the accelerator pedal, usually expressed as a percentage.
+
+### Brake Pressure
+Hydraulic pressure applied during braking; measured per wheel.
+
+### Gearbox / Gear Shifts
+Sequential transmission controlled by paddles behind the steering wheel.
+
+---
+
+## Tyres, Suspension & Chassis
+
+### Tyre Compound
+Rubber hardness type (Soft/Medium/Hard), affecting grip and degradation.
+
+### Tyre Temperature
+Real-time internal and surface temperature for each tyre.
+
+### Tyre Pressure
+Air pressure within each tyre; crucial for performance and safety.
+
+### Tyre Wear / Degradation
+Loss of grip over time due to rubber breakdown.
+
+### Suspension Travel
+Vertical movement of wheels relative to the chassis.
+
+### Ride Height
+Distance between the car's floor and the track.
+
+### Aerodynamic Balance
+Distribution of downforce between front and rear of the car.
+
+### Downforce
+Vertical aerodynamic load pushing the car to the ground for better grip.
+
+---
+
+## Driver Inputs & Controls
+
+### Steering Angle
+Measurement of how far the driver turns the steering wheel.
+
+### DRS (Drag Reduction System)
+Flap on the rear wing that opens to reduce drag and increase speed on straights.
+
+### Differential Settings
+Controls how much the rear wheels can rotate at different speeds during cornering.
+
+### Engine Mode
+Driver-selected power unit mode affecting performance, deployment, and fuel efficiency.
+
+### Brake Bias
+Percentage distribution of braking force between front and rear wheels.
+
+---
+
+## Positioning, Timing & On-Track Events
+
+### GPS Position
+Car's real-time location on the circuit.
+
+### Lap Time
+Time taken to complete a full lap.
+
+### Sector Times
+Three timed segments that divide each lap.
+
+### Delta Time
+Difference between current performance and target/previous lap performance.
+
+### Track Limits
+White line boundaries; exceeding them can result in penalties.
+
+### Pit Window
+Optimal lap range where a pit stop is most effective for race strategy.
+
+### Overcut / Undercut
+Race strategies involving pit stop timing to gain track position.
+
+---
+
+## Weather & Environment
+
+### Ambient Temperature
+Air temperature at the circuit.
+
+### Track Temperature
+Surface temperature of the racing track.
+
+### Humidity
+Moisture percentage in the air, affecting tyre behavior and engine cooling.
+
+### Wind Speed / Direction
+Impacts aerodynamic balance and cornering stability.
+
+---
+
+## Race Control & Events
+
+### Race Control
+Official body managing race operations, flags, penalties, and safety procedures.
+
+### Flags
+Signals for on-track conditions:
+- **Green** – Track clear
+- **Yellow** – Danger on track, no overtaking
+- **Red** – Session/race stopped
+- **Blue** – Lapping car approaching
+- **Black-and-white** – Warning to a driver
+- **Black** – Driver disqualified
+
+### Virtual Safety Car (VSC)
+Neutralized race mode requiring drivers to slow to a controlled pace.
+
+### Safety Car (SC)
+Physical car deployed to control race pace during dangerous conditions.
+
+### Pit Stop
+Visit to the pits for tyre change, repairs, or adjustments.
+
+### Penalties
+Time-based or drive-through penalties for infractions (track limits, collisions, unsafe releases).
+
+---
+
+## Sessions & Weekend Structure
+
+### FP1 / FP2 / FP3 (Free Practice)
+Practice sessions used for setup, long runs, and telemetry accumulation.
+
+### Qualifying (Q1/Q2/Q3)
+Timed sessions determining the starting grid order.
+
+### Race
+Main event where championship points are awarded.
+
+### Parc Fermé
+Restricted area after qualifying where major changes to the car are prohibited.
+
+---
+
+## Teams, Drivers & Roles
+
+### Team
+F1 constructor (e.g., Mercedes, Red Bull) operating two cars.
+
+### Driver
+Athlete controlling the car; each has a driver code (e.g., HAM, VER, NOR).
+
+### Race Engineer
+Person in constant radio communication with the driver, managing strategy and performance.
+
+### Performance Engineer
+Analyzes car and driver telemetry to optimize speed and handling.
+
+### Strategist / Race Strategist
+Person deciding when to pit, what tyre to use, and how to react to race events.
+
+---
+
+## Session & Telemetry Categories
+
+### Raw Telemetry
+Unprocessed sensor data streamed directly from the car.
+
+### Enriched Telemetry
+Raw telemetry combined with context (weather, flags, session info, metadata).
+
+### Car Status Data
+Temperature, battery, hydraulic pressure, warnings and reliability metrics.
+
+### Driver Performance Data
+Inputs (steering, throttle, braking) and lap time performance metrics.
+
+### Environmental Data
+Weather, humidity, wind, track conditions.
+
+---
+
+## Quick Reference
+
+| Category | Key Terms |
+|----------|-----------|
+| **Power Unit** | PU, ICE, ERS, MGU-K, MGU-H, Turbocharger |
+| **Tyres** | Compound, Temperature, Pressure, Wear, Degradation |
+| **Aerodynamics** | Downforce, DRS, Aerodynamic Balance |
+| **Timing** | Lap Time, Sector Times, Delta Time |
+| **Strategy** | Pit Window, Overcut, Undercut |
+| **Safety** | VSC, Safety Car, Flags, Penalties |
+| **Sessions** | FP1/2/3, Qualifying (Q1/Q2/Q3), Race |
+| **Telemetry** | Raw, Enriched, Car Status, Driver Performance |
+
+---
+
+## Related Documentation
+
+- [Architecture Overview](/docs/architecture)
+- [C2 - Container Diagram](/docs/architecture/c4/c2)
+- [ERD - Data Model](/docs/architecture/formula-telemetry-erd)
+- [Telemetry Sequence](/docs/architecture/telemetry-sequence)

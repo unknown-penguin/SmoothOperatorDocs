@@ -1,0 +1,15 @@
+{
+  "title": "C3 Model",
+  "description": "C3 architecture diagrams - Components",
+  "icon": "Layers",
+  "pages": [
+    "alert",
+    "auth",
+    "ingestion",
+    "processor",
+    "monitoring",
+    "racecontrol",
+    "realtime",
+    "ecu-telemetry-simulator"
+  ]
+}

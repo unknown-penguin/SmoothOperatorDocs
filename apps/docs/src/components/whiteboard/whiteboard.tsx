@@ -83,7 +83,7 @@ export const Whiteboard: FC<WhiteboardProps> = ({ svg, messages }) => {
       elementsSelectable={false}
       nodesDraggable={false}
       maxZoom={5}
-      minZoom={0.1}
+      minZoom={0.05}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}

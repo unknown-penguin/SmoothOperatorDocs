@@ -1,0 +1,117 @@
+---
+title: "Solution Design"
+description: "Ingest, process, and serve real-time F1 telemetry with alerts and dashboards."
+index: false
+---
+
+# Solution Design
+
+## Purpose
+
+Collect on-car and simulator telemetry, enrich with race context, persist to TimescaleDB, and fan-out to UI and alerts.
+
+## Owners
+
+- Product Manager: Valerii Tsyhanok
+- Team: Telemetry Core (TEL)
+
+## Flow Overview
+
+<Diagram lang="mermaid" chart={`
+sequenceDiagram
+participant Car as 🏎️ Car Sensors
+participant Sim as 🔧 ECU Simulator
+participant Ingest as 🚪 Ingestion Service (Go)
+participant Kafka as 🔀 Kafka
+participant Proc as ⚙️ Processor & API (.NET)
+participant DB as 🗄️ TimescaleDB
+participant Realtime as ⚡ Realtime Gateway
+participant UI as 🖥️ Dashboard
+
+Car->>Ingest: MQTT telemetry/*
+Sim->>Ingest: MQTT telemetry/* (test)
+Ingest->>Kafka: produce telemetry.raw.v1
+Ingest->>Kafka: produce telemetry.context.v1
+Kafka->>Proc: consume raw/context
+Proc->>DB: batch insert (hypertables)
+Proc->>Kafka: produce telemetry.enriched.v1
+Kafka->>Realtime: consume enriched
+Realtime-->>UI: WS/SSE updates
+UI->>Proc: Query REST/gRPC
+Proc-->>UI: Aggregations & snapshots
+`}
+/>
+
+## Scope
+
+### In Scope
+
+- MQTT ingestion and normalization
+- Context merge (weather/flags)
+- Enrichment, anomaly detection
+- Realtime fan-out (WS/SSE)
+
+### Out of Scope
+
+- Historical ML model training
+- Mobile offline mode
+
+## Risks & Solution
+
+### Technical Risks
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Kafka back-pressure | High | Consumer lag alerts + autoscaling |
+| Hot partitions per carId | Medium | Key by (sessionId, carId) |
+| DB write spikes | High | Batch writes + backoff + buffering |
+
+### Stability Concerns
+
+- DLQ for poison messages
+- Circuit breakers to DB/Redis
+
+### User Communication
+
+- Live status banner for degraded realtime
+- Data freshness indicators
+
+## Research
+
+### Research Findings
+
+- Timescale compression reduces storage >60%
+- Centrifugo handles >50k fan-out clients
+
+### POC Results
+
+- End-to-end p95 < 300 ms at 5k msg/s
+- UI frame updates ~20 Hz without jank
+
+## Additional Requirements
+
+### Backend
+
+- Schema registry and versioning
+- Idempotent Kafka producers
+
+### Frontend
+
+- Virtualized time-series tables
+- Latency and freshness badges
+
+### Cocoa
+
+- Low-power mode for telemetry stream
+- Background refresh throttling
+
+### QA
+
+- Replay tests from captured sessions
+- Chaos tests (broker/DB down)
+
+## Additional Documentation
+
+- JIRA: TEL-873
+- Design: Telemetry UI mocks
+- ADR: ADR-021 Kafka Partitioning

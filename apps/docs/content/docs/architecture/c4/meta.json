@@ -1,0 +1,10 @@
+{
+  "title": "C4 Model",
+  "description": "C4 architecture diagrams - Context, Containers, Components",
+  "icon": "Layers",
+  "pages": [
+    "c1",
+    "c2",
+    "services"
+  ]
+}

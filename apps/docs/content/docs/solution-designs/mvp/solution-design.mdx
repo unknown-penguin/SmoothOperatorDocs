@@ -1,0 +1,240 @@
+---
+title: MVP Architecture
+description: MVP architecture for initial race weekends and pilot deployments
+index: false
+---
+
+# MVP Architecture
+
+## Purpose
+
+Deliver a production-capable MVP for live F1 telemetry with minimal operational overhead and fastest time-to-market. Supports 1–2 cars at ~200 Hz with near-real-time dashboards, basic alerts, and historical queries.
+
+## Owners
+
+- Product Manager: Valerii Tsyhanok
+- Team: Platform Core (F1-Telemetry)
+- Tech Lead: Valerii Tsyhanok
+
+## Flow Overview
+
+<Diagram lang="mermaid" chart={`
+sequenceDiagram
+    participant User as 👤 Race Engineer
+    participant Frontend as 🖥️ React Dashboard
+    participant Backend as ⚙️ Telemetry API + Processor
+    participant Database as 🗄️ TimescaleDB
+    participant External as 🌐 FIA/Weather Feed
+
+    User->>Frontend: Open live dashboards
+    Frontend->>Backend: Subscribe to telemetry (WebSocket)
+    Backend->>Database: Write batches (enriched telemetry)
+    Database-->>Backend: Historical query results
+    Backend->>External: Pull context (flags/weather)
+    External-->>Backend: Context updates
+    Backend-->>Frontend: Live updates (<1s) + history
+    Frontend-->>User: Charts, alerts, lap analysis
+`}
+/>
+
+## Scope
+
+### In Scope
+
+- [x] Ingestion via MQTT → Redpanda (Kafka API compatible)
+- [x] Telemetry Processor (.NET): validate, enrich, deduplicate, batch-write
+- [x] TimescaleDB hypertables: 2-year retention, compression after 7 days
+- [x] Realtime via Centrifugo + Redis (single cluster)
+- [x] Basic alert rules (threshold-based) and Prometheus metrics
+- [x] Single-region deployment (EU-WEST-1)
+- [x] Support for 1–2 cars at 200 Hz telemetry rate
+- [x] Historical data queries for post-race analysis
+
+### Out of Scope
+
+- [ ] Multi-AZ failover and cross-region DR
+- [ ] Advanced ML anomaly detection at scale
+- [ ] Complex role modeling and SSO integrations beyond JWT
+- [ ] Support for >2 cars simultaneously
+- [ ] Real-time video streaming integration
+- [ ] Mobile native applications
+
+## Risks & Solution
+
+### Technical Risks
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Single-region outage | High | Daily S3 backups; runbook to redeploy in secondary region within 4 hours |
+| Backpressure on spikes | Medium | HPA on processor by Kafka lag; increase partitions to 20; shed non-critical ML paths |
+| Redis persistence loss | Medium | Enable AOF persistence; periodic backup tests; 5-minute recovery target |
+| TimescaleDB disk full | High | Alarms at 70% capacity; automated compression jobs; 30-day cleanup script |
+| WebSocket connection storms | Medium | Throttling; client exponential backoff; Centrifugo horizontal scaling |
+
+### Stability Concerns
+
+- [ ] DLQ for poison messages
+- [ ] Circuit breakers to DB/Redis
+- [ ] Performance targets in place: e2e p95 &lt; 1s; processor lag &lt; 1000/partition; API p99 &lt; 500ms; dashboard 10 Hz
+- [ ] Monitoring alerts configured: processor lag > 5000; Timescale disk > 85%; API p99 > 1s; WS failures > 5%
+
+### User Communication
+
+- [ ] Publish MVP limitations (supported cars, features, SLOs)
+- [ ] Status page for race weekends with key metrics
+- [ ] Onboarding guide for race engineers
+- [ ] Known limitations FAQ
+- [ ] Real-time status dashboard (system health)
+- [ ] Incident comms channel (Slack integration)
+- [ ] Escalation procedures for P0/P1
+
+## Research
+
+[Optional block for research findings, POCs, experiments, or technical investigations]
+
+### Research Findings
+
+- 1000-record DB batches provide optimal write throughput (≈12k inserts/sec; CPU ~45% at peak)
+- Single Redpanda cluster sufficient up to 50k msgs/sec (current need ~400 msgs/sec)
+- Centrifugo: 10k concurrent WebSocket connections; broadcast p99 < 50ms
+
+### POC Results
+
+- p95 processing latency: 280–450 ms (1 car @ 200 Hz)
+  - MQTT ingestion: 15ms; Kafka produce: 25ms; consume+enrich: 180ms; Timescale batch: 150ms; broadcast: 30ms
+- Lossless recovery on brief link drops (buffering 30s; auto reconnect; 0 loss in 10 simulated outages)
+- Data volume per car per race (~2h): ~1.4M records; ~2.8 GB uncompressed; ~400 MB compressed (season ≈18 GB)
+
+## Additional Requirements
+
+### Backend
+
+- [ ] Idempotent producers (key = carId+timestamp+seq)
+- [ ] Circuit breakers for DB/streaming (e.g., 5 failures in 30s)
+- [ ] Graceful degradation if enrichment unavailable
+- [ ] Batch writes (1000 records)
+- [ ] Partition strategy by carId for ordering
+- [ ] REST endpoints for historical queries
+- [ ] Optional GraphQL for flexible dashboards
+- [ ] Rate limits: 100 req/min per user; 1000 req/min per service
+- [ ] JWT auth with RBAC
+- [ ] Observability: Prometheus metrics, JSON logs with correlation IDs, OpenTelemetry traces, Grafana dashboards
+
+### Frontend
+
+- [ ] Delta rendering for charts
+- [ ] Graceful handling of data gaps (last known value + indicator)
+- [ ] Virtualized tables/lists for history
+- [ ] Lazy loading of historical windows
+- [ ] WebSocket reconnect with exp backoff (1s → 30s)
+- [ ] Connection state indicator
+- [ ] Auto replay last 10s on reconnect
+- [ ] Client-side buffering for smooth charts
+- [ ] Multi-car comparison view
+- [ ] Configurable alerts (sound/visual)
+- [ ] Session replay controls
+- [ ] Export to CSV/JSON
+
+### Cocoa
+
+- N/A for MVP (no native iOS/macOS client); consider mobile pit-lane displays later
+
+### QA
+
+- [ ] Load tests for 1–2 cars @ 200 Hz
+- [ ] Spike tests: 5x load for 30s
+- [ ] Endurance: 4-hour race simulation
+- [ ] Chaos: random component failures
+- [ ] Replay framework from recorded sessions
+- [ ] Synthetic data generator for automation
+- [ ] Sanitized prod data for staging
+- [ ] Scenarios: happy path; MQTT reconnect; TimescaleDB down 60s; processor failover; qualifying peak
+
+## Additional Documentation
+
+- JIRA: [Epic: MVP-TELEMETRY](https://jira.example.com/browse/MVP-TELEMETRY)
+- Design: [Figma - Dashboard Designs v1](https://figma.com/file/...)
+- ADR: [ADR-001: Choose Redpanda for MVP](/docs/adrs/001-redpanda-selection)
+
+---
+*This solution design should be reviewed and updated as implementation progresses.*
+
+## Appendix
+
+### Architecture Components
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| Message Broker | Redpanda | Kafka-compatible streaming (single cluster) |
+| Time-Series DB | TimescaleDB | Telemetry data storage with hypertables |
+| Metadata DB | PostgreSQL | Car, driver, session metadata |
+| Cache | Redis | Session state and Centrifugo backend |
+| Realtime Gateway | Centrifugo | WebSocket push to UI clients |
+| Processor | .NET 8 | Event processing and enrichment |
+| API Layer | .NET 8 | REST APIs for queries |
+| Frontend | React + TypeScript | Live telemetry dashboards |
+| Observability | Prometheus + Grafana | Metrics and monitoring |
+
+### Infrastructure
+
+- Compute: Kubernetes (EKS) with HPA enabled
+- Storage: EBS for TimescaleDB, S3 for backups
+- Network: Application Load Balancer, VPC with private subnets
+- Region: Single region (EU-WEST-1)
+
+### Deployment Architecture (excerpt)
+
+```yaml
+# Processor Deployment
+- Deployment: telemetry-processor
+  Replicas: 3 (HPA: 3-10)
+  Resources:
+    CPU: 500m (request), 2000m (limit)
+    Memory: 1Gi (request), 4Gi (limit)
+
+# API Deployment
+- Deployment: telemetry-api
+  Replicas: 2 (HPA: 2-6)
+  Resources:
+    CPU: 250m (request), 1000m (limit)
+    Memory: 512Mi (request), 2Gi (limit)
+
+# Centrifugo
+- Deployment: centrifugo
+  Replicas: 2 (HPA: 2-5)
+  Resources:
+    CPU: 100m (request), 500m (limit)
+    Memory: 256Mi (request), 1Gi (limit)
+```
+
+### Database Sizing
+
+- TimescaleDB: db.r6g.xlarge (4 vCPU, 32 GB RAM); 500 GB gp3 (3000 IOPS); daily S3 backups; compress after 7 days
+- Redis: cache.r6g.large (2 vCPU, 13.07 GB RAM); AOF on; snapshot every 15 minutes
+
+### Cost Estimate (Monthly)
+
+| Service | Configuration | Cost |
+|---------|--------------|------|
+| EKS Cluster | 3 worker nodes (m5.xlarge) | $730 |
+| RDS TimescaleDB | db.r6g.xlarge | $680 |
+| ElastiCache Redis | cache.r6g.large | $350 |
+| ALB | 1 load balancer | $25 |
+| EBS Storage | 500 GB gp3 | $50 |
+| S3 Backups | 1 TB storage + requests | $25 |
+| Data Transfer | Estimate | $100 |
+| Total |  | ~$1,960/month |
+
+### Implementation Phases
+
+1. Foundation (Weeks 1–2): infra, CI/CD, monitoring baseline
+2. Core Services (Weeks 3–4): MQTT ingestion, Redpanda, processor, Timescale schema
+3. API & Realtime (Weeks 5–6): REST queries, Centrifugo, WS endpoint, auth
+4. Frontend (Weeks 7–8): dashboards, live charts, history, alert UI
+5. Testing & Hardening (Weeks 9–10): perf, security, runbooks, pre-prod
+6. Pilot Launch (Week 11): 1 car test, incident readiness, feedback
+
+### Success Metrics
+
+- Technical: availability 99.5%; e2e p95 &lt; 1s; handle 2 cars @ 200 Hz; recovery &lt; 5m
+- Business: 10+ active engineers; &lt;0.1% data loss; ≤$2k/month; insights &lt; 2s

@@ -1,0 +1,36 @@
+---
+title: "Stream processing and persistence: Kafka → Processor → DB/Cache → Kafka (enriched)"
+description: "Processing pipeline consuming raw and context streams, persisting to TimescaleDB/Redis, and producing enriched events."
+---
+
+## Stream processing and persistence: Kafka → Processor → DB/Cache → Kafka (enriched)
+
+<Diagram lang="mermaid" chart={`
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'15px', 'fontFamily':'Arial'}}}%%
+sequenceDiagram
+    autonumber
+    participant K as Kafka Cluster
+    participant Proc as Telemetry Processor & API (.NET)
+    participant TS as TimescaleDB (PostgreSQL)
+    participant Redis as Redis Cache
+    participant PG as Metadata DB (PostgreSQL)
+
+    K-->>Proc: consume telemetry.raw.v1
+    K-->>Proc: consume telemetry.context.v1
+
+    Proc->>Proc: Validate schema
+    alt invalid message
+        Proc->>Proc: DLQ handler (retry then drop)
+    else valid
+        Proc->>PG: lookup car/driver/session
+        PG-->>Proc: metadata
+        Proc->>Proc: Normalize + deduplicate + anomaly detect
+        Proc->>TS: batch insert time series
+        TS-->>Proc: ack
+        Proc->>Redis: write latest values (TTL)
+        Redis-->>Proc: ack
+        Proc->>K: produce telemetry.enriched.v1
+    end
+
+    Proc-->>Proc: Metrics (lag, throughput, errors)
+`} />

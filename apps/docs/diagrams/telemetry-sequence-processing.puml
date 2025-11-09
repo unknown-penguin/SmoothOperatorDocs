@@ -1,0 +1,43 @@
+@startuml telemetry-sequence-processing
+skinparam style strictuml
+skinparam BackgroundColor #FFFFFF
+skinparam SequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #1F2937
+  ArrowThickness 2
+  LifeLineBorderColor #374151
+  LifeLineBackgroundColor #FFFFFF
+  ActivationBorderColor #2563EB
+  ActivationBackgroundColor #DBEAFE
+  ActorBackgroundColor #F0FDF4
+  ActorBorderColor #065F46
+  ActorFontColor #065F46
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #4B5563
+  ParticipantFontColor #111827
+  NoteBackgroundColor #FFFBEB
+  NoteBorderColor #F59E0B
+  NoteFontColor #7C2D12
+  GroupBackgroundColor #F0F9FF
+  GroupBorderColor #0369A1
+  DividerBackgroundColor #1F2937
+  DividerFontColor #FFFFFF
+}
+
+box "Processing & Storage"
+  participant "Kafka Event Bus" as K
+  participant "Telemetry Processor" as TP
+  participant "TelemetryDB (Time Series)" as TDB
+end box
+
+note over K,TDB #7C2D12
+  Processing & Persistence
+end note
+K -> TP : Consume telemetry.raw\n(key = carId+sessionId)
+activate TP
+TP -> TP : Validate · enrich · compute features
+TP -> TDB : Upsert time-series points\n(idempotent key)
+TP -> K : Publish telemetry.enriched
+deactivate TP
+
+@enduml

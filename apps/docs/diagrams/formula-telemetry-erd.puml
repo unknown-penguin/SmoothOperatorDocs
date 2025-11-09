@@ -1,0 +1,292 @@
+@startuml FORMULA_TELEMETRY_ERD
+
+title F1 Telemetry Platform - Entity Relationship Diagram (Simplified)
+
+' === Styling ===
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam nodesep 80
+skinparam ranksep 100
+
+skinparam class {
+  BackgroundColor<<Core>> #DBEAFE
+  BorderColor<<Core>> #2563EB
+  BorderThickness<<Core>> 2
+
+  BackgroundColor<<Telemetry>> #FEF3C7
+  BorderColor<<Telemetry>> #D97706
+  BorderThickness<<Telemetry>> 2
+
+  FontSize 12
+  AttributeFontSize 11
+  StereotypeFontSize 10
+}
+
+skinparam package {
+  BackgroundColor<<Core>> #F0F9FF
+  BorderColor<<Core>> #0369A1
+  BorderThickness<<Core>> 2
+  FontColor<<Core>> #0369A1
+  FontStyle<<Core>> bold
+
+  BackgroundColor<<Telemetry>> #FFFBEB
+  BorderColor<<Telemetry>> #B45309
+  BorderThickness<<Telemetry>> 2
+  FontColor<<Telemetry>> #B45309
+  FontStyle<<Telemetry>> bold
+}
+
+skinparam arrow {
+  Color #4B5563
+  Thickness 2
+}
+
+top to bottom direction
+
+package "Core Entities" <<Core>> {
+
+entity "Team" as Team <<Core>> {
+  * Id : UUID <<PK>>
+  --
+  * Name : String <<UK>>
+  Constructor : String
+  Active : Boolean
+}
+
+entity "Car" as Car <<Core>> {
+  * Id : UUID <<PK>>
+  --
+  * CarNumber : Int <<UK>>
+  * TeamId : UUID <<FK>>
+  ChassisNumber : String
+  Active : Boolean
+}
+
+entity "Driver" as Driver <<Core>> {
+  * Id : UUID <<PK>>
+  --
+  * DriverCode : String(3) <<UK>>
+  * TeamId : UUID <<FK>>
+  FirstName : String
+  LastName : String
+  Nationality : String
+}
+
+entity "Track" as Track <<Core>> {
+  * Id : UUID <<PK>>
+  --
+  * Name : String <<UK>>
+  Country : String
+  Length : Float
+}
+
+entity "RaceSession" as Session <<Core>> {
+  * Id : UUID <<PK>>
+  --
+  * SessionType : Enum
+  * TrackId : UUID <<FK>>
+  * StartTime : DateTime
+  EndTime : DateTime
+  WeatherConditions : JSONB
+}
+
+}
+
+package "Telemetry Data (TimescaleDB Hypertables)" <<Telemetry>> {
+
+entity "PositionTrackData" as PositionTrackData <<Telemetry>> {
+  * Id : UUID <<PK>>
+  --
+  * CarId : UUID <<FK>>
+  * SessionId : UUID <<FK>>
+  * Timestamp : DateTime <<PARTITION>>
+  --
+  GPS : (X, Y, Z)
+  Speed : Double
+  LapNumber : Int
+  SectorTimes : JSONB
+  DeltaToLeader : Double
+  --
+  <i>~200 Hz frequency</i>
+  <i>Partitioned daily</i>
+}
+
+entity "EnginePowerUnit" as EnginePowerUnit <<Telemetry>> {
+  * Id : UUID <<PK>>
+  --
+  * CarId : UUID <<FK>>
+  * SessionId : UUID <<FK>>
+  * Timestamp : DateTime <<PARTITION>>
+  --
+  EngineRpm : Int
+  CurrentGear : Int
+  Throttle : Double
+  BrakePressure : Double
+  ErsDeployed : Double
+  FuelLevel : Double
+  EngineTemp : Double
+  --
+  <i>~60 Hz frequency</i>
+}
+
+entity "TyresSuspension" as TyresSuspension <<Telemetry>> {
+  * Id : UUID <<PK>>
+  --
+  * CarId : UUID <<FK>>
+  * SessionId : UUID <<FK>>
+  * Timestamp : DateTime <<PARTITION>>
+  --
+  TyreTemp[4] : Float
+  TyrePressure[4] : Float
+  TyreWear[4] : Int
+  TyreCompound : String
+  SuspensionTravel[4] : Float
+  RideHeight : (Front, Rear)
+  --
+  <i>~10 Hz frequency</i>
+}
+
+entity "DriverInput" as DriverInput <<Telemetry>> {
+  * Id : UUID <<PK>>
+  --
+  * CarId : UUID <<FK>>
+  * SessionId : UUID <<FK>>
+  * Timestamp : DateTime <<PARTITION>>
+  --
+  SteeringAngle : Float
+  DrsActive : Boolean
+  ErsMode : Int
+  ButtonFlags : Int
+  --
+  <i>~60 Hz frequency</i>
+}
+
+entity "CarStatus" as CarStatus <<Telemetry>> {
+  * Id : UUID <<PK>>
+  --
+  * CarId : UUID <<FK>>
+  * SessionId : UUID <<FK>>
+  * Timestamp : DateTime <<PARTITION>>
+  --
+  CarStatus : Enum
+  PitStatus : Enum
+  ErrorCodes : JSONB
+  WarningFlags : Int
+  --
+  <i>~1 Hz frequency</i>
+}
+
+entity "EnvironmentData" as EnvironmentData <<Telemetry>> {
+  * Id : UUID <<PK>>
+  --
+  * SessionId : UUID <<FK>>
+  * Timestamp : DateTime <<PARTITION>>
+  --
+  TrackTemp : Double
+  AirTemp : Double
+  WeatherType : String
+  WindSpeed : Float
+  --
+  <i>~0.1 Hz frequency</i>
+}
+
+entity "RaceControlEvents" as RaceControlEvents <<Telemetry>> {
+  * Id : UUID <<PK>>
+  --
+  * SessionId : UUID <<FK>>
+  * Timestamp : DateTime <<PARTITION>>
+  CarId : UUID <<FK>>
+  --
+  YellowFlag : Boolean
+  SafetyCar : Boolean
+  PitStopCount : Int
+  EventType : Enum
+  --
+  <i>Event-driven</i>
+}
+
+entity "DerivedMetrics" as DerivedMetrics <<Telemetry>> {
+  * Id : UUID <<PK>>
+  --
+  * CarId : UUID <<FK>>
+  * SessionId : UUID <<FK>>
+  * Timestamp : DateTime <<PARTITION>>
+  --
+  EstimatedTyreLife : Float
+  FuelToFinish : Float
+  GapToCarAhead : Float
+  StrategyRecommendation : String
+  --
+  <i>Computed by Processor</i>
+  <i>~1 Hz frequency</i>
+}
+
+}
+
+' === Relationships ===
+
+' Core Entity Relationships
+Team ||--o{ Car : "operates"
+Team ||--o{ Driver : "employs"
+Track ||--o{ Session : "hosts"
+
+' Car Telemetry (Primary)
+Car ||--o{ PositionTrackData : ""
+Car ||--o{ EnginePowerUnit : ""
+Car ||--o{ TyresSuspension : ""
+Car ||--o{ DriverInput : ""
+Car ||--o{ CarStatus : ""
+Car ||--o{ DerivedMetrics : ""
+
+' Session Context
+Session ||--o{ PositionTrackData : ""
+Session ||--o{ EnginePowerUnit : ""
+Session ||--o{ TyresSuspension : ""
+Session ||--o{ DriverInput : ""
+Session ||--o{ CarStatus : ""
+Session ||--o{ EnvironmentData : ""
+Session ||--o{ RaceControlEvents : ""
+Session ||--o{ DerivedMetrics : ""
+
+' Notes
+note right of Team
+  **Master Data**
+  PostgreSQL
+end note
+
+note right of Session
+  **Session Context**
+  All telemetry linked
+  to race session
+end note
+
+note right of PositionTrackData
+  **Highest Frequency**
+  200 Hz
+  Critical for live tracking
+end note
+
+note right of DerivedMetrics
+  **Computed Data**
+  Generated by Processor
+  from raw telemetry
+end note
+
+legend right
+  **Storage:**
+  - Core Entities: PostgreSQL
+  - Telemetry Data: TimescaleDB Hypertables
+
+  **Partitioning:**
+  - All telemetry partitioned by day
+  - Compressed after 7 days
+  - 2-year retention policy
+
+  **Indexing:**
+  - (CarId, Timestamp DESC)
+  - (SessionId, Timestamp DESC)
+endlegend
+
+@enduml

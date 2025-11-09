@@ -1,22 +1,37 @@
 ---
-title: TestArch
-description: View the Scalar Galaxy example OpenAPI schema.
+title: Architecture Overview
+description: F1 Telemetry Platform architecture documentation and diagrams
 ---
 
-## Features
+## Architecture Documentation
 
-The official OpenAPI integration supports:
+Complete architectural documentation for the F1 Telemetry Platform, including C4 model diagrams, data models, and sequence flows.
 
-- Basic API endpoint information
-- Interactive API playground
-- Example code to send request (in different programming languages)
-- Response samples and TypeScript definitions
-- Request parameters and body generated from schemas
+---
 
-> Only OpenAPI 3.0 and 3.1 are supported.
+## Architecture Diagrams
 
-Generate docs with the script:
+Quick links to the architecture diagrams (C4 model):
 
-```bash
-pnpm build:openapi
-```
+- [C1 — System Context](/docs/architecture/c4/c1) - External actors and system boundaries
+- [C2 — Container Architecture](/docs/architecture/c4/c2) - Services, databases, and data flows
+- [C3 — Component Diagrams](/docs/architecture/c4/c3) - Internal service components
+
+---
+
+## Data Models
+
+- [ERD — Formula Telemetry](/docs/architecture/formula-telemetry-erd) - Complete entity relationship diagram
+
+---
+
+## Sequence Diagrams
+
+- [Telemetry Sequence Flow](/docs/architecture/telemetry-sequence) - End-to-end data flow from car to UI
+
+---
+
+## Additional Resources
+
+- [Domain Glossary](/docs/glossary) - Complete F1 and telemetry terminology reference
+- [Quick Start Guide](/docs/quick-start) - Get started with the platform

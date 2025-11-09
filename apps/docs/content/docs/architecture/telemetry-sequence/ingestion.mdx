@@ -1,0 +1,12 @@
+---
+title: "Telemetry Sequence - Phase 2: Ingestion"
+description: "Ingestion of telemetry from edge to the event bus"
+---
+
+This page isolates Phase 2 (Ingestion) of the full telemetry sequence.
+
+<Diagram lang="plantuml" path="telemetry-sequence-ingestion.puml" alt="Phase 2: Ingestion" />
+
+Brief notes:
+- Edge publishes batched telemetry to the Ingress API.
+- The Ingress API performs auth and schema validation and publishes raw events to Kafka.

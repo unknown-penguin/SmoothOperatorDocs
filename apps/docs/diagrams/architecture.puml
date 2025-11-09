@@ -1,18 +1,22 @@
 @startuml
 !include <C4/C4_Container>
 
+LAYOUT_WITH_LEGEND()
+LAYOUT_LEFT_RIGHT()
+title Docs Diagram Rendering – C4 Container (C2)
+
 Person(user, "User", "Documentation reader")
 
-System_Boundary(system, "Diagramming Guru") {
-  Container(docs, "Docs App", "Next.js + Fumadocs", "Serves documentation with MDX")
-  Container(api, "Diagram API", "Next.js API Route", "Proxies diagram requests")
-  ContainerDb(diagrams, "Diagram Files", "File System", "PlantUML, Graphviz files")
+System_Boundary(system, "Diagramming Guru Docs") {
+  Container(docs, "Docs (App)", "Next.js + Fumadocs", "MDX site & components")
+  Container(api, "Diagram API", "Next.js API Route", "Proxies diagram rendering")
+  ContainerDb(diagrams, "Diagrams FS", "File System", "PlantUML / Graphviz files")
 }
 
-System_Ext(kroki, "Kroki", "Diagram renderer service")
+System_Ext(kroki, "Kroki Service", "Diagram renderer")
 
-Rel(user, docs, "Views", "HTTPS")
-Rel(docs, api, "Fetches diagrams", "HTTP")
-Rel(api, diagrams, "Reads", "fs")
-Rel(api, kroki, "Renders", "HTTP")
+Rel(user, docs, "View docs", "HTTPS")
+Rel(docs, api, "Fetch diagram", "HTTP")
+Rel(api, diagrams, "Read file", "fs")
+Rel(api, kroki, "Render diagram", "HTTP")
 @enduml

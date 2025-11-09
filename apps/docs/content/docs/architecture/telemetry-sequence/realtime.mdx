@@ -1,0 +1,11 @@
+---
+title: "Telemetry Sequence - Phase 5: Realtime Distribution"
+description: "Realtime gateway fan-out to clients"
+---
+
+This page isolates Phase 5 (Realtime Distribution) of the full telemetry sequence.
+
+<Diagram lang="plantuml" path="telemetry-sequence-realtime.puml" alt="Phase 5: Realtime Distribution" />
+
+Brief notes:
+- Realtime Gateway pushes alerts and telemetry to the frontend via WebSockets and caches latest values in Redis.

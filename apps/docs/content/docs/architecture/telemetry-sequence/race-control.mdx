@@ -1,0 +1,31 @@
+---
+title: "Race control: External context + Operator → RaceControl → Commands on Kafka → UI"
+description: "Race control commands flow from operator and external providers to Kafka and UI state updates."
+---
+
+## Race control: External context + Operator → RaceControl → Commands on Kafka → UI
+
+<Diagram lang="mermaid" chart={`
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'15px', 'fontFamily':'Arial'}}}%%
+sequenceDiagram
+    autonumber
+    participant RP as Race Provider
+    participant Dir as Race Director (Operator)
+    participant UI as Web UI (React)
+    participant RC as RaceControl Service (.NET)
+    participant Auth as Auth Service
+    participant K as Kafka Cluster
+
+    RP-->>RC: flags/weather updates (REST/gRPC)
+    UI->>Auth: login for director role
+    Auth-->>UI: JWT
+
+    Dir->>UI: select command (safety car, pit window)
+    UI->>RC: POST /command (Bearer JWT + payload)
+    RC->>Auth: validate RBAC (director)
+    Auth-->>RC: ok
+
+    RC->>K: produce racecontrol.commands.v1
+    K-->>RC: ack
+    K-->>UI: (via RT path) command state update
+`} />

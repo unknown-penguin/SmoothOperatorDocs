@@ -1,0 +1,67 @@
+---
+title: auth
+description: Component diagram for the Auth Service.
+---
+
+## Auth Service — Components
+
+<Diagram lang="mermaid" chart={`
+flowchart TD
+  %% ============================================
+  %% Auth Service Components (.NET)
+  %% ============================================
+
+  subgraph Auth["🔐 Auth Service (.NET)"]
+    direction TB
+
+    subgraph Identity["👥 Identity & Tokens"]
+      OIDC["OIDC / OAuth2\nexternal IdP (SSO)"]
+      TokenSvc["Token Service\nJWT issue/refresh\nPKCE"]
+      Keys["JWKS Keys\nrotate, cache"]
+    end
+
+    subgraph Policies["🧾 Policies"]
+      RBAC["RBAC Engine\nroles/scopes"]
+      ABAC["ABAC (optional)\ncar/team/session attrs"]
+      Audit["Audit Log\nsecurity events"]
+    end
+
+    subgraph Endpoints["🌐 Endpoints"]
+      Login["/login, /callback"]
+      Introspect["/introspect, /userinfo"]
+      Validate["/validate\n(services call)"]
+    end
+
+    subgraph Guard["🛡️ Resilience & Obs"]
+      Rate["Rate Limiter"]
+      CB["Circuit Breakers\nIdP/DB"]
+      Metrics["Prometheus"]
+      Logs["Serilog → Loki"]
+      Health["/health, /ready"]
+    end
+  end
+
+  IdP["🪪 External Identity Provider"]
+  Services["🧩 Platform Services\n(Processor, RT, Mon, RC, Alert, UI)"]
+
+  %% Flows
+  Services --> Validate --> RBAC
+  Validate --> TokenSvc --> Keys
+  Login --> OIDC --> IdP
+  Introspect --> TokenSvc
+  RBAC --> Audit
+  ABAC --> RBAC
+  Rate --> CB
+
+  %% Styling
+  classDef dotnet fill:#8b5cf6,stroke:#5b21b6,color:#ffffff;
+  classDef resilience fill:#ef4444,stroke:#dc2626,color:#ffffff;
+  classDef external fill:#6b7280,stroke:#374151,color:#ffffff;
+
+  class Auth,Identity,OIDC,TokenSvc,Keys,Policies,RBAC,ABAC,Audit,Endpoints,Login,Introspect,Validate,Guard,Rate,CB,Metrics,Logs,Health dotnet;
+  class IdP external;
+  class Services external;
+
+  `} />
+
+Notes: central auth and RBAC for platform services; supports JWT and token introspection for backend services.

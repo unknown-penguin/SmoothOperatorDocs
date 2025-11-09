@@ -1,0 +1,49 @@
+@startuml telemetry-sequence-monitoring-resilience
+skinparam style strictuml
+skinparam BackgroundColor #FFFFFF
+skinparam SequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #1F2937
+  ArrowThickness 2
+  LifeLineBorderColor #374151
+  LifeLineBackgroundColor #FFFFFF
+  ActivationBorderColor #2563EB
+  ActivationBackgroundColor #DBEAFE
+  ActorBackgroundColor #F0FDF4
+  ActorBorderColor #065F46
+  ActorFontColor #065F46
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #4B5563
+  ParticipantFontColor #111827
+  NoteBackgroundColor #FFFBEB
+  NoteBorderColor #F59E0B
+  NoteFontColor #7C2D12
+  GroupBackgroundColor #F0F9FF
+  GroupBorderColor #0369A1
+  DividerBackgroundColor #1F2937
+  DividerFontColor #FFFFFF
+}
+
+participant "Ingress Web API" as API
+participant "Kafka Event Bus" as K
+participant "Telemetry Processor" as TP
+participant "TelemetryDB (Time Series)" as TDB
+participant "AlertingDB" as ADB
+
+note over API,TP #7C2D12
+  Monitoring & Resilience
+end note
+opt Ingress backpressure
+  API -> API : Shed load / rate limit
+  ' edge buffer/retry behavior shown as internal
+  API -> API : Local buffer · retry with backoff
+end
+opt Processing lag
+  K -> TP : Backlog grows
+  TP -> TP : Autoscale consumers · DLQ on poison messages
+end
+note over TDB,ADB
+  Idempotent writes prevent duplicates on retries
+end note
+
+@enduml

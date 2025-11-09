@@ -1,0 +1,24 @@
+---
+title: "Realtime fan-out to UI: Kafka (enriched) → Realtime Gateway → UI"
+description: "Realtime distribution of enriched telemetry to clients via the gateway, plus historical fetch."
+---
+
+## Realtime fan-out to UI: Kafka (enriched) → Realtime Gateway → UI
+
+<Diagram lang="mermaid" chart={`
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'15px', 'fontFamily':'Arial'}}}%%
+sequenceDiagram
+    autonumber
+    participant K as Kafka Cluster
+    participant RT as Realtime Gateway (WS/SSE)
+    participant UI as Web UI (React)
+    participant Mon as Monitoring Service (Query API)
+
+    K-->>RT: consume telemetry.enriched.v1
+    RT->>RT: push to channels (per car/session)
+
+    UI->>RT: connect WS/SSE (subscribe topics)
+    RT-->>UI: live updates (compact DTO)
+    UI->>Mon: HTTP fetch historical window
+    Mon-->>UI: JSON timeseries
+`} />
