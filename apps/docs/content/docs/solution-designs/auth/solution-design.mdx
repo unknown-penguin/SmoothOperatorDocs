@@ -1,0 +1,63 @@
+---
+title: "Auth & Access Control"
+description: "Authentication, authorization (RBAC), and token lifecycle for the platform."
+index: false
+---
+
+## Purpose
+
+Provide secure authentication for users and services, enforce fine-grained authorization (RBAC), and manage token lifecycles for both HTTP APIs and realtime channels.
+
+## Owners
+
+- Product Manager: Valerii Tsyhanok
+- Team: Platform Core (AUTH)
+
+## Scope
+
+### In Scope
+
+- Username/password and SSO login
+- Access/Refresh token issuance and rotation
+- RBAC validation for APIs and realtime streams
+- Token refresh and re-authentication for WebSocket sessions
+
+### Out of Scope
+
+- Federation across external IdPs beyond configured SSO
+- Legacy API key auth (deprecated)
+
+## High-level Flows
+
+### Login & Token Issuance
+
+<Diagram lang="plantuml" path="telemetry-sequence-read-model.puml" />
+
+Notes:
+- Uses bearer JWT with short TTL; refresh token for renewal.
+- RBAC validated by Auth service for protected resources.
+
+### Token Refresh & Realtime Auth
+
+<Diagram lang="plantuml" path="telemetry-sequence-auth-refresh.puml" />
+
+Notes:
+- Re-authenticate realtime connection on token expiry without dropping subscriptions where possible.
+
+## API Security Considerations
+
+- Rotate signing keys regularly, maintain JWKS endpoint and caching.
+- Use audience and issuer checks in all services.
+- Scope tokens narrowly; prefer per-service audiences.
+- Enforce HTTPS/TLS everywhere; mTLS for internal sensitive hops if required.
+
+## Operational Concerns
+
+- Rate-limit login and refresh endpoints.
+- Alert on anomalous refresh patterns; invalidate refresh tokens on compromise.
+- Provide self-service session revocation.
+
+## Additional Documentation
+
+- ADR: Token Lifetimes & Rotation Strategy
+- Runbook: Incident response for compromised tokens

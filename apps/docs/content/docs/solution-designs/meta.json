@@ -5,6 +5,7 @@
   "pages": [
     "index",
     "mvp",
-    "telemetry-realtime"
+    "telemetry-realtime",
+    "auth"
   ]
 }

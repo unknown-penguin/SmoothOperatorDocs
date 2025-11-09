@@ -1,0 +1,8 @@
+{
+  "title": "auth",
+  "description": "Authentication solution design",
+  "icon": "Activity",
+  "pages": [
+    "solution-design"
+  ]
+}
