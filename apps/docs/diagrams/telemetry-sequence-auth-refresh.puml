@@ -1,0 +1,48 @@
+@startuml telemetry-sequence-auth-refresh
+skinparam style strictuml
+skinparam BackgroundColor #FFFFFF
+skinparam SequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #1F2937
+  ArrowThickness 2
+  LifeLineBorderColor #374151
+  LifeLineBackgroundColor #FFFFFF
+  ActivationBorderColor #2563EB
+  ActivationBackgroundColor #DBEAFE
+  ActorBackgroundColor #F0FDF4
+  ActorBorderColor #065F46
+  ActorFontColor #065F46
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #4B5563
+  ParticipantFontColor #111827
+  NoteBackgroundColor #FFFBEB
+  NoteBorderColor #F59E0B
+  NoteFontColor #7C2D12
+  GroupBackgroundColor #F0F9FF
+  GroupBorderColor #0369A1
+  DividerBackgroundColor #1F2937
+  DividerFontColor #FFFFFF
+}
+
+participant "Web UI (React)" as UI
+participant "Auth Service" as Auth
+participant "Realtime Gateway" as RT
+
+note over UI,RT #7C2D12
+  Token Refresh & Realtime Auth
+end note
+UI -> Auth : POST /token/refresh (refresh_token)
+Auth --> UI : new access token (short TTL)
+
+UI -> RT : authenticate WS (JWT)
+alt valid
+  RT --> UI : subscribed streams ok
+else expired/invalid
+  RT --> UI : 401 reauth required
+  UI -> Auth : refresh token again
+  Auth --> UI : new token
+  UI -> RT : reauthenticate
+  RT --> UI : ok
+end
+
+@enduml

@@ -5,25 +5,4 @@ description: "Sequence for refreshing tokens and authenticating realtime connect
 
 ## Token refresh and realtime auth: UI ↔ Auth ↔ Realtime
 
-<Diagram lang="mermaid" chart={`
-%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'15px', 'fontFamily':'Arial'}}}%%
-sequenceDiagram
-    autonumber
-    participant UI as Web UI (React)
-    participant Auth as Auth Service
-    participant RT as Realtime Gateway
-
-    UI->>Auth: POST /token/refresh (refresh_token)
-    Auth-->>UI: new access token (short TTL)
-
-    UI->>RT: authenticate WS (JWT)
-    alt valid
-        RT-->>UI: subscribed streams ok
-    else expired/invalid
-        RT-->>UI: 401 -> reauth flow
-        UI->>Auth: refresh again
-        Auth-->>UI: new token
-        UI->>RT: reauthenticate
-        RT-->>UI: ok
-    end
-`} />
+<Diagram lang="plantuml" path="telemetry-sequence-auth-refresh.puml" />

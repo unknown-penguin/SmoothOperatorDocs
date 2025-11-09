@@ -5,25 +5,4 @@ description: "Rule evaluation on enriched telemetry and notification fan-out."
 
 ## Alerting: Kafka (enriched) → Alert Service → Notifications → UI
 
-<Diagram lang="mermaid" chart={`
-%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'15px', 'fontFamily':'Arial'}}}%%
-sequenceDiagram
-    autonumber
-    participant K as Kafka Cluster
-    participant Alert as Alert Service (.NET)
-    participant Notif as Notification Provider (PagerDuty/Slack)
-    participant UI as Web UI (React)
-    participant Auth as Auth Service
-
-    K-->>Alert: consume telemetry.enriched.v1
-    Alert->>Alert: evaluate rules / thresholds
-    alt breach detected
-        Alert->>Auth: validate RBAC for recipients
-        Auth-->>Alert: ok
-        Alert->>Notif: send incident / message
-        Notif-->>Alert: ack
-        Alert-->>UI: push alert badge via RT/API
-    else no breach
-        Alert->>Alert: metrics only
-    end
-`} />
+<Diagram lang="plantuml" path="telemetry-sequence-alerting.puml" />

@@ -4,7 +4,7 @@
   "icon": "FileText",
   "pages": [
     "index",
-    "mvp-cost-optimized",
-    "solution-design"
+    "mvp",
+    "telemetry-realtime"
   ]
 }

@@ -1,0 +1,48 @@
+@startuml telemetry-sequence-alerting
+skinparam style strictuml
+skinparam BackgroundColor #FFFFFF
+skinparam SequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #1F2937
+  ArrowThickness 2
+  LifeLineBorderColor #374151
+  LifeLineBackgroundColor #FFFFFF
+  ActivationBorderColor #2563EB
+  ActivationBackgroundColor #DBEAFE
+  ActorBackgroundColor #F0FDF4
+  ActorBorderColor #065F46
+  ActorFontColor #065F46
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #4B5563
+  ParticipantFontColor #111827
+  NoteBackgroundColor #FFFBEB
+  NoteBorderColor #F59E0B
+  NoteFontColor #7C2D12
+  GroupBackgroundColor #F0F9FF
+  GroupBorderColor #0369A1
+  DividerBackgroundColor #1F2937
+  DividerFontColor #FFFFFF
+}
+
+participant "Kafka Event Bus" as K
+participant "Alert Service (.NET)" as Alert
+participant "Auth Service" as Auth
+participant "Notification Provider" as Notif
+participant "Web UI (React)" as UI
+
+note over K,UI #7C2D12
+  Alerting Flow
+end note
+K --> Alert : consume telemetry.enriched.v1
+Alert -> Alert : evaluate rules / thresholds
+alt breach detected
+  Alert -> Auth : validate RBAC recipients
+  Auth --> Alert : ok
+  Alert -> Notif : send incident/message
+  Notif --> Alert : ack
+  Alert --> UI : push alert badge (RT/API)
+else no breach
+  Alert -> Alert : metrics only
+end
+
+@enduml

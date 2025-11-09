@@ -1,0 +1,54 @@
+@startuml telemetry-sequence-read-model
+skinparam style strictuml
+skinparam BackgroundColor #FFFFFF
+skinparam SequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #1F2937
+  ArrowThickness 2
+  LifeLineBorderColor #374151
+  LifeLineBackgroundColor #FFFFFF
+  ActivationBorderColor #2563EB
+  ActivationBackgroundColor #DBEAFE
+  ActorBackgroundColor #F0FDF4
+  ActorBorderColor #065F46
+  ActorFontColor #065F46
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #4B5563
+  ParticipantFontColor #111827
+  NoteBackgroundColor #FFFBEB
+  NoteBorderColor #F59E0B
+  NoteFontColor #7C2D12
+  GroupBackgroundColor #F0F9FF
+  GroupBorderColor #0369A1
+  DividerBackgroundColor #1F2937
+  DividerFontColor #FFFFFF
+}
+
+participant "Web UI (React)" as UI
+participant "Auth Service" as Auth
+participant "Monitoring Service (.NET)" as Mon
+participant "Redis Cache" as Redis
+participant "TimescaleDB" as TS
+
+note over UI,TS #7C2D12
+  Read-Model Queries
+end note
+UI -> Auth : login(username/password or SSO)
+Auth --> UI : JWT access + refresh
+
+UI -> Mon : GET /metrics?carId=... (Bearer)
+Mon -> Auth : validate token / RBAC
+Auth --> Mon : ok
+
+Mon -> Redis : try cache read
+alt cache hit
+  Redis --> Mon : cached response
+else cache miss
+  Mon -> TS : query hypertables
+  TS --> Mon : rows
+  Mon -> Redis : set cache (TTL)
+  Redis --> Mon : ok
+end
+Mon --> UI : JSON result
+
+@enduml

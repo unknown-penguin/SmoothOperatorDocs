@@ -4,8 +4,6 @@ description: "Ingest, process, and serve real-time F1 telemetry with alerts and 
 index: false
 ---
 
-# Solution Design
-
 ## Purpose
 
 Collect on-car and simulator telemetry, enrich with race context, persist to TimescaleDB, and fan-out to UI and alerts.
@@ -17,30 +15,51 @@ Collect on-car and simulator telemetry, enrich with race context, persist to Tim
 
 ## Flow Overview
 
-<Diagram lang="mermaid" chart={`
-sequenceDiagram
-participant Car as 🏎️ Car Sensors
-participant Sim as 🔧 ECU Simulator
-participant Ingest as 🚪 Ingestion Service (Go)
-participant Kafka as 🔀 Kafka
-participant Proc as ⚙️ Processor & API (.NET)
-participant DB as 🗄️ TimescaleDB
-participant Realtime as ⚡ Realtime Gateway
-participant UI as 🖥️ Dashboard
+Below the end-to-end flow is split into focused sequence diagrams to keep each one readable and fast to render.
 
-Car->>Ingest: MQTT telemetry/*
-Sim->>Ingest: MQTT telemetry/* (test)
-Ingest->>Kafka: produce telemetry.raw.v1
-Ingest->>Kafka: produce telemetry.context.v1
-Kafka->>Proc: consume raw/context
-Proc->>DB: batch insert (hypertables)
-Proc->>Kafka: produce telemetry.enriched.v1
-Kafka->>Realtime: consume enriched
-Realtime-->>UI: WS/SSE updates
-UI->>Proc: Query REST/gRPC
-Proc-->>UI: Aggregations & snapshots
-`}
-/>
+### Edge Data Collection
+
+<Diagram lang="plantuml" path="telemetry-sequence-collection.puml" />
+
+### Cloud Ingestion
+
+<Diagram lang="plantuml" path="telemetry-sequence-ingestion.puml" />
+
+### Stream Processing & Enrichment
+
+<Diagram lang="plantuml" path="telemetry-sequence-processing.puml" />
+
+### Domain Consumers
+
+<Diagram lang="plantuml" path="telemetry-sequence-domain-consumers.puml" />
+
+### Real-time Fan-out
+
+<Diagram lang="plantuml" path="telemetry-sequence-realtime.puml" />
+
+### UI Updates
+
+<Diagram lang="plantuml" path="telemetry-sequence-ui-updates.puml" />
+
+### Read Model & Queries
+
+<Diagram lang="plantuml" path="telemetry-sequence-read-model.puml" />
+
+### Alerting
+
+<Diagram lang="plantuml" path="telemetry-sequence-alerting.puml" />
+
+### Race Control
+
+<Diagram lang="plantuml" path="telemetry-sequence-race-control.puml" />
+
+### Auth Token Refresh
+
+<Diagram lang="plantuml" path="telemetry-sequence-auth-refresh.puml" />
+
+### Monitoring & Resilience
+
+<Diagram lang="plantuml" path="telemetry-sequence-monitoring-resilience.puml" />
 
 ## Scope
 

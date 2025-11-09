@@ -92,7 +92,7 @@ group Authentication & Validation
     MQTT --> Edge : Connection error
     note over Edge #FFE4E4: **Error**: Retry with\nexponential backoff
   end
-end group
+end
 
 Ingest -> Secrets : **Fetch credentials**\n(Kafka broker auth)
 Secrets --> Ingest : ClientId/Secret
@@ -166,7 +166,7 @@ group Data Enrichment Pipeline
     Processor -> Processor : Flag for alert
     note right #FFE4E4: **Anomaly**: Temp > 120°C
   end
-end group
+end
 
 group Persistence (Batch Write)
   Processor -> Processor : **Buffer records**\n(batch size: 1000)
@@ -184,7 +184,7 @@ group Persistence (Batch Write)
     TSDB --> Processor : **OK** (1000 rows inserted)
     deactivate TSDB
   end
-end group
+end
 
 Processor -> Processor : **Emit metrics**\n(lag, throughput, errors)
 Processor -> Prom : **POST** /metrics
@@ -308,7 +308,7 @@ group **WebSocket Fan-out**
     deactivate Centrifugo
     deactivate Kafka
   end
-end group
+end
 
 == **UI Rendering** (~16ms @ 60fps) ==
 
@@ -332,7 +332,7 @@ group **Render Cycle**
 
   UI -> UI : **DOM update**
   note right: React Virtual DOM\ndiff & patch
-end group
+end
 
 deactivate UI
 
@@ -362,7 +362,7 @@ group **Network Failure Scenario**
   deactivate MQTT
   deactivate Edge
   note right #E4FFE4: **Recovered**\nFlush buffered data
-end group
+end
 
 group **Processing Lag Detection**
   Kafka -> Processor : Consumer lag > 1000 msgs
@@ -388,7 +388,7 @@ group **Processing Lag Detection**
   Processor -> Processor : **Circuit Breaker: CLOSED**
   deactivate Processor
   note right #E4FFE4: **Recovered**\nLag < 100 msgs
-end group
+end
 
 group **Database Circuit Breaker**
   Processor -> TSDB : **INSERT** batch (connection refused)
@@ -423,7 +423,7 @@ group **Database Circuit Breaker**
   Processor -> Processor : **Circuit Breaker: CLOSED**
   deactivate Processor
   note right #E4FFE4: **Recovered**\nResume normal flow
-end group
+end
 
 note over Driver,UI
   **End-to-End Latency Summary:**

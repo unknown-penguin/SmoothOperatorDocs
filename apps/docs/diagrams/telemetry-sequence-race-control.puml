@@ -1,0 +1,50 @@
+@startuml telemetry-sequence-race-control
+skinparam style strictuml
+skinparam BackgroundColor #FFFFFF
+skinparam SequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #1F2937
+  ArrowThickness 2
+  LifeLineBorderColor #374151
+  LifeLineBackgroundColor #FFFFFF
+  ActivationBorderColor #2563EB
+  ActivationBackgroundColor #DBEAFE
+  ActorBackgroundColor #F0FDF4
+  ActorBorderColor #065F46
+  ActorFontColor #065F46
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #4B5563
+  ParticipantFontColor #111827
+  NoteBackgroundColor #FFFBEB
+  NoteBorderColor #F59E0B
+  NoteFontColor #7C2D12
+  GroupBackgroundColor #F0F9FF
+  GroupBorderColor #0369A1
+  DividerBackgroundColor #1F2937
+  DividerFontColor #FFFFFF
+}
+
+participant "Race Provider" as RP
+participant "Web UI (React)" as UI
+participant "Race Director (Operator)" as Dir
+participant "RaceControl Service (.NET)" as RC
+participant "Auth Service" as Auth
+participant "Kafka Cluster" as K
+
+note over RP,UI #7C2D12
+  Race Control Commands
+end note
+RP --> RC : flags/weather updates (REST/gRPC)
+UI -> Auth : login (director role)
+Auth --> UI : JWT
+
+Dir -> UI : select command (safety car, pit window)
+UI -> RC : POST /command (Bearer JWT + payload)
+RC -> Auth : validate RBAC (director)
+Auth --> RC : ok
+
+RC -> K : produce racecontrol.commands.v1
+K --> RC : ack
+K --> UI : (via RT path) command state update
+
+@enduml

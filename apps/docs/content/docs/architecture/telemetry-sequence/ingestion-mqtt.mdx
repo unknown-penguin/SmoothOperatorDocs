@@ -5,28 +5,4 @@ description: "Sequence from edge sensors and simulator into MQTT, through Ingest
 
 ## Telemetry ingestion: Car/Simulator → MQTT → Ingestion Service → Kafka
 
-<Diagram lang="mermaid" chart={`
-%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'15px', 'fontFamily':'Arial'}}}%%
-sequenceDiagram
-    autonumber
-    participant Car as Car Sensors
-    participant Sim as ECU Simulator
-    participant MQTT as MQTT Broker
-    participant Ing as Ingestion Service (Go)
-    participant RP as Race Provider
-    participant K as Kafka Cluster
-
-    Car->>MQTT: publish telemetry/* (QoS 1, TLS)
-    Sim->>MQTT: publish telemetry/* (test/replay)
-
-    Note over Ing: Subscribe topics telemetry/*
-    MQTT-->>Ing: telemetry messages
-    Ing->>Ing: Normalize + Schema validate
-    RP-->>Ing: REST/gRPC context (flags, weather, positions)
-    Ing->>Ing: Merge context
-
-    Ing->>K: produce telemetry.raw.v1
-    Ing->>K: produce telemetry.context.v1
-
-    Ing-->>Ing: Health/Metrics update
-`} />
+<Diagram lang="plantuml" path="telemetry-sequence-ingestion.puml" />

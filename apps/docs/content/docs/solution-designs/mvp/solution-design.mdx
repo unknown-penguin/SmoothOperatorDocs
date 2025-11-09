@@ -18,24 +18,7 @@ Deliver a production-capable MVP for live F1 telemetry with minimal operational 
 
 ## Flow Overview
 
-<Diagram lang="mermaid" chart={`
-sequenceDiagram
-    participant User as 👤 Race Engineer
-    participant Frontend as 🖥️ React Dashboard
-    participant Backend as ⚙️ Telemetry API + Processor
-    participant Database as 🗄️ TimescaleDB
-    participant External as 🌐 FIA/Weather Feed
-
-    User->>Frontend: Open live dashboards
-    Frontend->>Backend: Subscribe to telemetry (WebSocket)
-    Backend->>Database: Write batches (enriched telemetry)
-    Database-->>Backend: Historical query results
-    Backend->>External: Pull context (flags/weather)
-    External-->>Backend: Context updates
-    Backend-->>Frontend: Live updates (<1s) + history
-    Frontend-->>User: Charts, alerts, lap analysis
-`}
-/>
+<Diagram lang="plantuml" path="telemetry-sequence-realtime.puml" />
 
 ## Scope
 

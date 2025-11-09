@@ -5,31 +5,4 @@ description: "Authenticated query flow for metrics from UI to Monitoring Service
 
 ## Read-model queries: UI → Monitoring Service → DB/Cache (+ Auth)
 
-<Diagram lang="mermaid" chart={`
-%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'15px', 'fontFamily':'Arial'}}}%%
-sequenceDiagram
-    autonumber
-    participant UI as Web UI (React)
-    participant Auth as Auth Service
-    participant Mon as Monitoring Service (.NET)
-    participant Redis as Redis Cache
-    participant TS as TimescaleDB
-
-    UI->>Auth: login(username, password / SSO)
-    Auth-->>UI: JWT access + refresh
-
-    UI->>Mon: GET /metrics?carId=... (Authorization: Bearer)
-    Mon->>Auth: validate token / RBAC
-    Auth-->>Mon: ok
-
-    Mon->>Redis: try cache read
-    alt cache hit
-        Redis-->>Mon: cached response
-    else cache miss
-        Mon->>TS: query hypertables
-        TS-->>Mon: rows
-        Mon->>Redis: set cache (TTL)
-        Redis-->>Mon: ok
-    end
-    Mon-->>UI: JSON result
-`} />
+<Diagram lang="plantuml" path="telemetry-sequence-read-model.puml" />
